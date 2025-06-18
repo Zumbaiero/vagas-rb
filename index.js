@@ -1,17 +1,13 @@
-// Importa as bibliotecas necessárias
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
 
-// Cria a aplicação Express
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// Constantes de configuração da SmartRecruiters
 const COMPANY_ID = 'BoschGroup';
-const BASE_URL = `https://api.smartrecruiters.com/v1/companies/${COMPANY_ID}/postings`;
+const SMART_API = `https://api.smartrecruiters.com/v1/companies/${COMPANY_ID}/postings`;
 
-// CORS para produção
+// Configura CORS
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -23,107 +19,76 @@ app.use((req, res, next) => {
   }
 });
 
-// Middleware para parsing JSON
+// Middleware JSON
 app.use(express.json());
 
 // Servir arquivos estáticos
 app.use(express.static(path.join(__dirname, 'public')));
 
-/**
- * fetchJobs - Função para buscar vagas na API da SmartRecruiters
- */
-async function fetchJobs(filters = {}) {
+// Função helper para obter vagas
+async function fetchJobs(params = {}) {
   try {
-    const params = { 
-      country: filters.country || "br", 
-      limit: filters.limit || 100
+    const defaultParams = {
+      country: params.country || 'br',
+      limit: params.limit || 100
     };
+    if (params.q) defaultParams.q = params.q;
+    if (params.department) defaultParams.department = params.department;
+    if (params.city) defaultParams.city = params.city;
 
-    if (filters.q) params.q = filters.q;
-    if (filters.department) params.department = filters.department;
-    if (filters.city) params.city = filters.city;
+    const resp = await axios.get(SMART_API, { params: defaultParams });
+    const jobsArray = resp.data.content || resp.data.jobs || [];
 
-    console.log('Buscando vagas com parâmetros:', params);
-
-    const resp = await axios.get(BASE_URL, { params });
-    const jobs = resp.data.content || resp.data.jobs || [];
-
-    console.log(`Encontradas ${jobs.length} vagas na API`);
-
-    return jobs.map(job => ({
+    return jobsArray.map(job => ({
       id: job.id,
       title: job.name || job.title,
-      url: job.jobAdUrl || job.ref,
+      url: job.jobAdUrl,
       applyUrl: job.applyUrl,
       expirationDate: job.expirationDate,
       location: job.location ? `${job.location.city}, ${job.location.country}` : 'N/A',
       department: job.department ? job.department.label : 'N/A',
-      description: job.jobAd ? job.jobAd.sections?.jobDescription?.text : null,
+      description: job.jobAd ? job.jobAd.sections?.jobDescription?.text : '',
       refNumber: job.refNumber,
       companyUrl: `https://jobs.smartrecruiters.com/${COMPANY_ID}/${job.id || job.refNumber}`
     }));
   } catch (error) {
-    console.error('Erro na requisição à API:', error.message);
+    console.error('Erro na chamada da API SmartRecruiters:', error.message);
     throw error;
   }
 }
 
-function filterJobsByKeywords(jobs, keywords, excludeKeywords = []) {
-  if (!keywords || keywords.length === 0) return jobs;
-  
+// Filtra vagas por palavras-chave e exclusões
+function filterByKeywords(jobs, keywords = [], exclude = []) {
+  if (!keywords.length && !exclude.length) return jobs;
   return jobs.filter(job => {
-    const searchText = `${job.title} ${job.description || ''}`.toLowerCase();
-    
-    const hasKeywords = keywords.some(keyword => 
-      searchText.includes(keyword.toLowerCase())
-    );
-    
-    const hasExcludedKeywords = excludeKeywords.some(keyword => 
-      searchText.includes(keyword.toLowerCase())
-    );
-    
-    return hasKeywords && !hasExcludedKeywords;
+    const text = (job.title + ' ' + job.description).toLowerCase();
+    const matchesKeyword = keywords.length ? keywords.some(k => text.includes(k.toLowerCase())) : true;
+    const matchesExcluded = exclude.some(e => text.includes(e.toLowerCase()));
+    return matchesKeyword && !matchesExcluded;
   });
 }
 
-function filterJobsByLocation(jobs, targetCity) {
-  if (!targetCity) return jobs;
-  
-  return jobs.filter(job => {
-    const location = job.location.toLowerCase();
-    return location.includes(targetCity.toLowerCase());
-  });
+// Filtra por cidade
+function filterByCity(jobs, city) {
+  if (!city) return jobs;
+  return jobs.filter(job => (job.location || '').toLowerCase().includes(city.toLowerCase()));
 }
 
-async function searchSpecificJobs(searchCriteria = {}) {
-  const { 
-    level = [], 
-    technologies = [], 
-    department, 
-    city, 
-    country,
-    excludeKeywords = []
-  } = searchCriteria;
-  
-  const allJobs = await fetchJobs({ department, city, country, limit: 100 });
-  
-  let filteredJobs = city ? filterJobsByLocation(allJobs, city) : allJobs;
-  
-  const keywords = [...level, ...technologies];
-  
-  if (keywords.length > 0) {
-    filteredJobs = filterJobsByKeywords(filteredJobs, keywords, excludeKeywords);
-  }
-  
-  return filteredJobs;
+// Busca conjunto de vagas
+async function searchJobs(searchConfig = {}) {
+  const { level, technologies, department, city, country, excludeKeywords } = searchConfig;
+  const fetchedJobs = await fetchJobs({ department, city, country, limit: 100 });
+  let filtered = filterByCity(fetchedJobs, city);
+
+  const combinedKeywords = [...(level || []), ...(technologies || [])];
+  filtered = filterByKeywords(filtered, combinedKeywords, excludeKeywords || []);
+
+  return filtered;
 }
 
-// ============ ROTAS DA API ============
-
-// Rota principal para buscar vagas
+// Rota principal
 app.get('/api/jobs', async (req, res) => {
   try {
-    console.log('📍 Rota /api/jobs chamada');
     const filters = {
       q: req.query.q,
       department: req.query.department,
@@ -131,238 +96,158 @@ app.get('/api/jobs', async (req, res) => {
       limit: parseInt(req.query.limit) || 100,
       country: req.query.country || 'br'
     };
-
     const result = await fetchJobs(filters);
     res.json({ 
-      count: result.length, 
+      count: result.length,
       jobs: result,
-      filters: filters
+      filters
     });
-  }
-  catch (err) {
-    console.error('Erro ao buscar vagas:', err.message);
-    res.status(500).json({ error: 'Erro ao buscar vagas', details: err.message });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar vagas', message: err.message });
   }
 });
 
-// Rota específica para buscar vagas Junior SAP em Campinas
+// Rota específica: Junior SAP
 app.get('/api/jobs/junior-sap', async (req, res) => {
   try {
-    console.log('📍 Rota /api/jobs/junior-sap chamada');
-    const result = await searchSpecificJobs({
+    const jobs = await searchJobs({
       level: ['junior', 'jr'],
       technologies: ['sap', 'erp'],
       city: 'Campinas',
-      excludeKeywords: ['senior', 'sênior', 'sr', 'pleno', 'lead', 'principal', 'especialista', 'expert', 'gerente', 'coordenador', 'supervisor']
+      excludeKeywords: ['senior','sênior','pleno','sr','estagiário','estágio','trainee','lead','gerente']
     });
-    
-    res.json({ 
-      count: result.length, 
-      jobs: result.map(job => ({
-        ...job,
-        primaryUrl: job.url || job.companyUrl,
+    res.json({
+      count: jobs.length,
+      jobs: jobs.map(j => ({
+        ...j,
+        primaryUrl: j.url || j.companyUrl,
         allUrls: {
-          jobAd: job.url,
-          apply: job.applyUrl,
-          company: job.companyUrl
+          jobAd: j.url,
+          apply: j.applyUrl,
+          company: j.companyUrl
         }
       })),
-      searchCriteria: 'Junior SAP - Campinas (excluindo Senior/Pleno)',
-      note: 'Use primaryUrl para acessar a vaga, ou confira allUrls para mais opções'
+      searchCriteria: 'Junior SAP - Campinas'
     });
-  }
-  catch (err) {
-    console.error('Erro ao buscar vagas Junior SAP:', err.message);
-    res.status(500).json({ error: 'Erro ao buscar vagas Junior SAP', details: err.message });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar vagas Junior SAP', message: err.message });
   }
 });
 
-// Rota específica para vagas Junior SAP sem estágio
+// Rota específica: Junior SAP CLT
 app.get('/api/jobs/junior-sap-clt', async (req, res) => {
   try {
-    console.log('📍 Rota /api/jobs/junior-sap-clt chamada');
-    const result = await searchSpecificJobs({
+    const jobs = await searchJobs({
       level: ['junior', 'jr'],
       technologies: ['sap', 'erp'],
       city: 'Campinas',
-      excludeKeywords: [
-        'senior', 'sênior', 'sr', 'pleno', 'lead', 'principal', 'especialista', 'expert', 
-        'gerente', 'coordenador', 'supervisor', 'estágio', 'estagiário', 'trainee', 'intern'
-      ]
+      excludeKeywords: ['senior','sênior','pleno','sr','estagiário','estágio','trainee','lead','gerente']
     });
-    
-    res.json({ 
-      count: result.length, 
-      jobs: result.map(job => ({
-        ...job,
-        primaryUrl: job.url || job.companyUrl,
-        allUrls: {
-          jobAd: job.url,
-          apply: job.applyUrl,
-          company: job.companyUrl
-        }
+    res.json({
+      count: jobs.length,
+      jobs: jobs.map(j => ({
+        ...j,
+        primaryUrl: j.url || j.companyUrl,
       })),
-      searchCriteria: 'Junior SAP CLT - Campinas (sem estágio/senior)',
-      note: 'Use primaryUrl para acessar a vaga'
+      searchCriteria: 'Junior SAP CLT em Campinas'
     });
-  }
-  catch (err) {
-    console.error('Erro ao buscar vagas Junior SAP CLT:', err.message);
-    res.status(500).json({ error: 'Erro ao buscar vagas Junior SAP CLT', details: err.message });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar vagas Junior SAP CLT', message: err.message });
   }
 });
 
-// Rota apenas para estágios SAP em Campinas
+// Rota: Estágio SAP
 app.get('/api/jobs/estagio-sap', async (req, res) => {
   try {
-    console.log('📍 Rota /api/jobs/estagio-sap chamada');
-    const result = await searchSpecificJobs({
-      level: ['estágio', 'estagiário', 'trainee', 'intern'],
-      technologies: ['sap', 'erp'],
+    const jobs = await searchJobs({
+      level: ['estágio','estagiário','trainee','intern'],
+      technologies: ['sap','erp'],
       city: 'Campinas',
-      excludeKeywords: ['senior', 'sênior', 'sr', 'pleno', 'junior', 'jr']
+      excludeKeywords: ['senior','sênior','pleno','jr','junior','sr','lead','gerente']
     });
-    
-    res.json({ 
-      count: result.length, 
-      jobs: result,
+    res.json({
+      count: jobs.length,
+      jobs,
       searchCriteria: 'Estágio SAP - Campinas'
     });
-  }
-  catch (err) {
-    console.error('Erro ao buscar estágios SAP:', err.message);
-    res.status(500).json({ error: 'Erro ao buscar estágios SAP', details: err.message });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar estágios SAP', message: err.message });
   }
 });
 
-// Rota flexível para busca customizada
+// Busca customizada
 app.get('/api/jobs/search', async (req, res) => {
   try {
-    console.log('📍 Rota /api/jobs/search chamada');
     const level = req.query.level ? req.query.level.split(',') : [];
     const technologies = req.query.technologies ? req.query.technologies.split(',') : [];
-    const department = req.query.department;
-    const city = req.query.city || 'Campinas';
-    const country = req.query.country;
     const excludeKeywords = req.query.exclude ? req.query.exclude.split(',') : [];
-
-    const result = await searchSpecificJobs({
+    const result = await searchJobs({
       level,
       technologies,
-      department,
-      city,
-      country,
+      department: req.query.department,
+      city: req.query.city || 'Campinas',
+      country: req.query.country,
       excludeKeywords
     });
-    
-    res.json({ 
-      count: result.length, 
+    res.json({
+      count: result.length,
       jobs: result,
-      searchCriteria: { level, technologies, department, city, country, excludeKeywords }
+      searchCriteria: { level, technologies, excludeKeywords }
     });
-  }
-  catch (err) {
-    console.error('Erro na busca customizada:', err.message);
-    res.status(500).json({ error: 'Erro na busca customizada', details: err.message });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro na busca customizada', message: err.message });
   }
 });
 
-// Rota para listar todos os departamentos disponíveis
+// Rota: Departamentos
 app.get('/api/departments', async (req, res) => {
   try {
-    console.log('📍 Rota /api/departments chamada');
     const allJobs = await fetchJobs({ limit: 100 });
-    const departments = [...new Set(allJobs.map(job => job.department).filter(dept => dept !== 'N/A'))];
-    
-    res.json({ 
-      count: departments.length,
-      departments: departments.sort()
-    });
-  }
-  catch (err) {
-    console.error('Erro ao buscar departamentos:', err.message);
-    res.status(500).json({ error: 'Erro ao buscar departamentos', details: err.message });
+    const depts = [...new Set(allJobs.map(j => j.department).filter(d => d !== 'N/A'))].sort();
+    res.json({ count: depts.length, departments: depts });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao obter departamentos', message: err.message });
   }
 });
 
-// Rota para listar todas as cidades disponíveis
+// Rota: Cidades
 app.get('/api/cities', async (req, res) => {
   try {
-    console.log('📍 Rota /api/cities chamada');
     const allJobs = await fetchJobs({ limit: 100 });
-    const cities = [...new Set(allJobs.map(job => job.location).filter(loc => loc !== 'N/A'))];
-    
-    res.json({ 
-      count: cities.length,
-      cities: cities.sort()
-    });
-  }
-  catch (err) {
-    console.error('Erro ao buscar cidades:', err.message);
-    res.status(500).json({ error: 'Erro ao buscar cidades', details: err.message });
+    const cities = [...new Set(allJobs.map(j => j.location).filter(c => c !== 'N/A'))].sort();
+    res.json({ count: cities.length, cities });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao obter cidades', message: err.message });
   }
 });
 
-// ============ ROTAS DO FRONTEND ============
-
-// Rota para servir o frontend
+// Rota index do frontend
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Rota de teste para verificar se a API está funcionando
+// Health check
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     timestamp: new Date().toISOString(),
-    domain: 'vagas-rb.tech',
-    routes: [
-      '/api/jobs',
-      '/api/jobs/junior-sap',
-      '/api/jobs/junior-sap-clt',
-      '/api/jobs/estagio-sap',
-      '/api/jobs/search',
-      '/api/departments',
-      '/api/cities'
-    ]
+    domain: 'vagas-rb.tech'
   });
 });
 
-// Middleware para capturar rotas não encontradas
+// Middleware para rotas não encontradas
 app.use('*', (req, res) => {
-  console.log(`❌ Rota não encontrada: ${req.originalUrl}`);
-  res.status(404).json({ 
-    error: 'Rota não encontrada', 
-    path: req.originalUrl,
-    availableRoutes: [
-      '/',
-      '/api/health',
-      '/api/jobs',
-      '/api/jobs/junior-sap',
-      '/api/jobs/junior-sap-clt',
-      '/api/jobs/estagio-sap',
-      '/api/jobs/search',
-      '/api/departments',
-      '/api/cities'
-    ]
+  res.status(404).json({
+    error: 'Rota não encontrada',
+    path: req.originalUrl
   });
 });
 
-// Para Vercel, exporte o app
+// Exporta para Vercel / exec local
 module.exports = app;
 
-// Para desenvolvimento local
 if (require.main === module) {
   app.listen(PORT, () => {
-    console.log(`🚀 API rodando em http://localhost:${PORT}`);
-    console.log('\n📋 Rotas disponíveis:');
-    console.log(`   GET /api/jobs - Lista todas as vagas`);
-    console.log(`   GET /api/jobs/junior-sap - Vagas Junior SAP em Campinas`);
-    console.log(`   GET /api/jobs/junior-sap-clt - Vagas Junior SAP CLT`);
-    console.log(`   GET /api/jobs/estagio-sap - Estágios SAP`);
-    console.log(`   GET /api/jobs/search - Busca customizada`);
-    console.log(`   GET /api/departments - Lista departamentos`);
-    console.log(`   GET /api/cities - Lista cidades`);
-    console.log(`   GET /api/health - Status da API`);
+    console.log(`API rodando na porta ${PORT}`);
   });
 }
