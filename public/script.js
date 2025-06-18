@@ -1,5 +1,7 @@
-// URL base da API
-const API_BASE_URL = 'http://localhost:3000';
+// URL base da API - adequada para vagas-rb.tech
+const API_BASE_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:3000' 
+    : 'https://vagas-rb.tech/api';
 
 // Elementos DOM
 const loading = document.getElementById('loading');
@@ -35,17 +37,42 @@ function showResults(jobs, searchInfo = '') {
     renderJobs(jobs);
 }
 
-function showError(message) {
+function showError(message, errorType = 'generic') {
     hideLoading();
     results.classList.remove('hidden');
     resultsCount.textContent = 'Erro na busca';
+    
+    let errorDetails = '';
+    
+    if (errorType === 'cors') {
+        errorDetails = `
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin-top: 15px;">
+                <h4 style="color: #856404; margin-bottom: 10px;">🔧 Como resolver:</h4>
+                <ol style="color: #856404; margin-left: 20px;">
+                    <li>Certifique-se que o servidor está configurado corretamente</li>
+                    <li>Verifique se o deploy foi feito na Vercel</li>
+                    <li>Teste diretamente: <a href="https://vagas-rb.tech/api/jobs" target="_blank">https://vagas-rb.tech/api/jobs</a></li>
+                </ol>
+            </div>
+        `;
+    } else if (errorType === 'network') {
+        errorDetails = `
+            <div style="background: #f8d7da; border: 1px solid #f1aeb5; border-radius: 8px; padding: 15px; margin-top: 15px;">
+                <h4 style="color: #721c24; margin-bottom: 10px;">🌐 Problema de conexão:</h4>
+                <ul style="color: #721c24; margin-left: 20px;">
+                    <li>Verifique sua conexão com a internet</li>
+                    <li>Teste a API diretamente: <a href="https://vagas-rb.tech/api/jobs" target="_blank">https://vagas-rb.tech/api/jobs</a></li>
+                    <li>Se estiver em desenvolvimento: <a href="http://localhost:3000/jobs" target="_blank">http://localhost:3000/jobs</a></li>
+                </ul>
+            </div>
+        `;
+    }
+    
     jobsList.innerHTML = `
         <div class="job-card" style="text-align: center; color: #e74c3c;">
             <h3>❌ Erro</h3>
-            <p>${message}</p>
-            <p style="margin-top: 10px; font-size: 0.9em; color: #7f8c8d;">
-                Verifique se a API está rodando em ${API_BASE_URL}
-            </p>
+            <p style="margin-bottom: 15px;">${message}</p>
+            ${errorDetails}
         </div>
     `;
 }
@@ -63,20 +90,22 @@ function renderJobs(jobs) {
     }
 
     jobsList.innerHTML = jobs.map(job => {
-        // Criar links apenas para URLs válidas
+        // Criar links corrigidos
         const links = [];
         
-        if (job.primaryUrl || job.url) {
-            links.push(`<a href="${job.primaryUrl || job.url}" target="_blank" class="job-link">📋 Ver Vaga</a>`);
+        // Botão "Ver Vaga" - usa a URL da vaga (jobAdUrl ou url)
+        const jobUrl = job.url || job.jobAdUrl || job.primaryUrl;
+        if (jobUrl) {
+            links.push(`<a href="${jobUrl}" target="_blank" class="job-link">📋 Ver Vaga</a>`);
         }
         
-        if (job.applyUrl && job.applyUrl !== job.url) {
+        // Botão "Candidatar-se" - usa applyUrl se disponível e diferente da URL principal
+        if (job.applyUrl && job.applyUrl !== jobUrl) {
             links.push(`<a href="${job.applyUrl}" target="_blank" class="job-link apply">✉️ Candidatar-se</a>`);
         }
         
-        if (job.companyUrl && job.companyUrl !== job.url && job.companyUrl !== job.applyUrl) {
-            links.push(`<a href="${job.companyUrl}" target="_blank" class="job-link">🏢 Página da Empresa</a>`);
-        }
+        // Botão "Página da Empresa" - sempre vai para a página da Bosch no Brasil
+        links.push(`<a href="https://careers.smartrecruiters.com/BoschGroup/brazil" target="_blank" class="job-link company">🏢 Página da Empresa</a>`);
 
         // Informações da vaga (omitir campos vazios)
         const jobInfo = [];
@@ -125,19 +154,38 @@ function renderJobs(jobs) {
     }).join('');
 }
 
+// [resto das funções continua igual ao código anterior...]
+
 // Funções de busca
 async function fetchAPI(endpoint) {
     try {
         showLoading();
-        const response = await fetch(`${API_BASE_URL}${endpoint}`);
+        console.log(`🔍 Fazendo requisição para: ${API_BASE_URL}${endpoint}`);
+        
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        });
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
-        return await response.json();
+        const data = await response.json();
+        console.log('✅ Dados recebidos:', data);
+        return data;
     } catch (error) {
-        console.error('Erro na API:', error);
+        console.error('❌ Erro na API:', error);
+        
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            throw new Error('CORS_ERROR');
+        } else if (error.message.includes('Failed to fetch')) {
+            throw new Error('NETWORK_ERROR');
+        }
+        
         throw error;
     }
 }
@@ -147,7 +195,13 @@ async function searchJuniorSAP() {
         const data = await fetchAPI('/jobs/junior-sap');
         showResults(data.jobs, data.searchCriteria);
     } catch (error) {
-        showError(`Erro ao buscar vagas Junior SAP: ${error.message}`);
+        if (error.message === 'CORS_ERROR') {
+            showError('Erro de CORS: Não é possível acessar a API', 'cors');
+        } else if (error.message === 'NETWORK_ERROR') {
+            showError('Não foi possível conectar ao servidor', 'network');
+        } else {
+            showError(`Erro ao buscar vagas Junior SAP: ${error.message}`);
+        }
     }
 }
 
@@ -156,7 +210,13 @@ async function searchJuniorSAPCLT() {
         const data = await fetchAPI('/jobs/junior-sap-clt');
         showResults(data.jobs, data.searchCriteria);
     } catch (error) {
-        showError(`Erro ao buscar vagas Junior SAP CLT: ${error.message}`);
+        if (error.message === 'CORS_ERROR') {
+            showError('Erro de CORS: Não é possível acessar a API', 'cors');
+        } else if (error.message === 'NETWORK_ERROR') {
+            showError('Não foi possível conectar ao servidor', 'network');
+        } else {
+            showError(`Erro ao buscar vagas Junior SAP CLT: ${error.message}`);
+        }
     }
 }
 
@@ -165,7 +225,13 @@ async function searchEstagioSAP() {
         const data = await fetchAPI('/jobs/estagio-sap');
         showResults(data.jobs, data.searchCriteria);
     } catch (error) {
-        showError(`Erro ao buscar estágios SAP: ${error.message}`);
+        if (error.message === 'CORS_ERROR') {
+            showError('Erro de CORS: Não é possível acessar a API', 'cors');
+        } else if (error.message === 'NETWORK_ERROR') {
+            showError('Não foi possível conectar ao servidor', 'network');
+        } else {
+            showError(`Erro ao buscar estágios SAP: ${error.message}`);
+        }
     }
 }
 
@@ -183,7 +249,13 @@ async function loadDepartments() {
         infoList.classList.remove('hidden');
         results.classList.add('hidden');
     } catch (error) {
-        showError(`Erro ao carregar departamentos: ${error.message}`);
+        if (error.message === 'CORS_ERROR') {
+            showError('Erro de CORS: Não é possível acessar a API', 'cors');
+        } else if (error.message === 'NETWORK_ERROR') {
+            showError('Não foi possível conectar ao servidor', 'network');
+        } else {
+            showError(`Erro ao carregar departamentos: ${error.message}`);
+        }
     }
 }
 
@@ -201,7 +273,13 @@ async function loadCities() {
         infoList.classList.remove('hidden');
         results.classList.add('hidden');
     } catch (error) {
-        showError(`Erro ao carregar cidades: ${error.message}`);
+        if (error.message === 'CORS_ERROR') {
+            showError('Erro de CORS: Não é possível acessar a API', 'cors');
+        } else if (error.message === 'NETWORK_ERROR') {
+            showError('Não foi possível conectar ao servidor', 'network');
+        } else {
+            showError(`Erro ao carregar cidades: ${error.message}`);
+        }
     }
 }
 
@@ -216,13 +294,12 @@ customSearchForm.addEventListener('submit', async (e) => {
     const formData = new FormData(customSearchForm);
     const params = new URLSearchParams();
     
-    // Adicionar parâmetros apenas se preenchidos
-    const searchQuery = formData.get('searchQuery')?.trim();
-    const department = formData.get('department')?.trim();
-    const city = formData.get('city')?.trim();
-    const level = formData.get('level')?.trim();
-    const technologies = formData.get('technologies')?.trim();
-    const exclude = formData.get('exclude')?.trim();
+    const searchQuery = document.getElementById('searchQuery').value?.trim();
+    const department = document.getElementById('department').value?.trim();
+    const city = document.getElementById('city').value?.trim();
+    const level = document.getElementById('level').value?.trim();
+    const technologies = document.getElementById('technologies').value?.trim();
+    const exclude = document.getElementById('exclude').value?.trim();
     
     if (searchQuery) params.append('q', searchQuery);
     if (department) params.append('department', department);
@@ -244,7 +321,13 @@ customSearchForm.addEventListener('submit', async (e) => {
             
         showResults(data.jobs, searchInfo);
     } catch (error) {
-        showError(`Erro na busca customizada: ${error.message}`);
+        if (error.message === 'CORS_ERROR') {
+            showError('Erro de CORS: Não é possível acessar a API', 'cors');
+        } else if (error.message === 'NETWORK_ERROR') {
+            showError('Não foi possível conectar ao servidor', 'network');
+        } else {
+            showError(`Erro na busca customizada: ${error.message}`);
+        }
     }
 });
 
@@ -254,7 +337,36 @@ function clearForm() {
     infoList.classList.add('hidden');
 }
 
+// Teste de conectividade na inicialização
+async function testConnection() {
+    try {
+        console.log('🔍 Testando conexão com a API...');
+        const response = await fetch(`${API_BASE_URL}/jobs?limit=1`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            console.log('✅ API conectada com sucesso!');
+        } else {
+            console.warn('⚠️ API respondeu mas com erro:', response.status);
+        }
+    } catch (error) {
+        console.error('❌ Erro ao conectar com a API:', error.message);
+        if (window.location.hostname === 'localhost') {
+            console.log('💡 Certifique-se que o servidor Node.js está rodando em http://localhost:3000');
+        } else {
+            console.log('💡 Verifique se o deploy foi feito corretamente na Vercel');
+        }
+    }
+}
+
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Frontend carregado! API esperada em:', API_BASE_URL);
+    console.log('🌍 Domínio: vagas-rb.tech');
+    testConnection();
 });
