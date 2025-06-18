@@ -3,106 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vagas Bosch - Buscador de Oportunidades</title>
-    <link rel="stylesheet" href="/public/style.css">
+    <title>Vagas Bosch Brasil - vagas-rb.tech</title>
+    <meta name="description" content="Encontre oportunidades de trabalho na Bosch Group no Brasil">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>🔍 Buscador de Vagas Bosch</h1>
-            <p>Encontre oportunidades na Bosch Group de forma rápida e fácil</p>
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="title">
+                    <span class="icon">🔍</span>
+                    Vagas Bosch Brasil
+                </h1>
+                <p class="subtitle">Encontre sua próxima oportunidade na Bosch Group</p>
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-number" id="totalVagasGeral">-</span>
+                        <span class="stat-label">Vagas Disponíveis</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="ultimaAtualizacao">-</span>
+                        <span class="stat-label">Última Atualização</span>
+                    </div>
+                </div>
+            </div>
         </header>
 
-        <main>
-            <!-- Seção de Buscas Rápidas -->
-            <section class="quick-search">
-                <h2>🚀 Buscas Rápidas</h2>
-                <div class="quick-buttons">
-                    <button class="btn btn-primary" onclick="searchJuniorSAP()">
-                        💼 Junior SAP - Campinas
+        <!-- Controles -->
+        <section class="controls">
+            <div class="search-section">
+                <div class="search-bar">
+                    <input type="text" id="searchInput" placeholder="🔍 Buscar por título, departamento ou local..." />
+                    <button id="clearSearch" class="clear-btn" title="Limpar busca">✕</button>
+                </div>
+                
+                <div class="filter-tabs">
+                    <button class="filter-tab active" data-filter="all">
+                        <span class="tab-icon">📋</span>
+                        Todas <span class="tab-count" id="countAll">0</span>
                     </button>
-                    <button class="btn btn-secondary" onclick="searchJuniorSAPCLT()">
-                        🎯 Junior SAP CLT (sem estágio)
+                    <button class="filter-tab" data-filter="campinas">
+                        <span class="tab-icon">📍</span>
+                        Campinas <span class="tab-count" id="countCampinas">0</span>
                     </button>
-                    <button class="btn btn-accent" onclick="searchEstagioSAP()">
-                        🎓 Estágios SAP - Campinas
+                    <button class="filter-tab" data-filter="sap">
+                        <span class="tab-icon">💼</span>
+                        SAP <span class="tab-count" id="countSap">0</span>
                     </button>
-                    <button class="btn btn-outline" onclick="loadDepartments()">
-                        🏢 Ver Departamentos
-                    </button>
-                    <button class="btn btn-outline" onclick="loadCities()">
-                        🌍 Ver Cidades
+                    <button class="filter-tab" data-filter="engineering">
+                        <span class="tab-icon">⚙️</span>
+                        Engenharia <span class="tab-count" id="countEngineering">0</span>
                     </button>
                 </div>
-            </section>
 
-            <!-- Seção de Busca Customizada -->
-            <section class="custom-search">
-                <h2>🔧 Busca Customizada</h2>
-                <form id="customSearchForm" class="search-form">
-                    <div class="form-group">
-                        <label for="searchQuery">Palavra-chave:</label>
-                        <input type="text" id="searchQuery" placeholder="Ex: desenvolvedor, analista, SAP...">
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="department">Departamento:</label>
-                            <input type="text" id="department" placeholder="Ex: IT, Engineering...">
-                        </div>
-                        <div class="form-group">
-                            <label for="city">Cidade:</label>
-                            <input type="text" id="city" placeholder="Ex: Campinas, São Paulo...">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="level">Nível (separado por vírgula):</label>
-                            <input type="text" id="level" placeholder="Ex: junior, senior, trainee...">
-                        </div>
-                        <div class="form-group">
-                            <label for="technologies">Tecnologias (separado por vírgula):</label>
-                            <input type="text" id="technologies" placeholder="Ex: SAP, Java, Python...">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="exclude">Excluir palavras (separado por vírgula):</label>
-                        <input type="text" id="exclude" placeholder="Ex: senior, estagio, terceirizado...">
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">🔍 Buscar Vagas</button>
-                        <button type="button" class="btn btn-secondary" onclick="clearForm()">🗑️ Limpar</button>
-                    </div>
-                </form>
-            </section>
-
-            <!-- Loading -->
-            <div id="loading" class="loading hidden">
-                <div class="spinner"></div>
-                <p>Buscando vagas...</p>
+                <div class="action-buttons">
+                    <button id="loadVagas" class="btn btn-primary">
+                        <span class="btn-icon">🚀</span>
+                        <span class="btn-text">Carregar Vagas</span>
+                    </button>
+                    <button id="refreshVagas" class="btn btn-secondary hidden">
+                        <span class="btn-icon">🔄</span>
+                        <span class="btn-text">Atualizar</span>
+                    </button>
+                    <button id="sortToggle" class="btn btn-outline hidden">
+                        <span class="btn-icon">📊</span>
+                        <span class="btn-text">A-Z</span>
+                    </button>
+                </div>
             </div>
+        </section>
 
-            <!-- Resultados -->
-            <section id="results" class="results hidden">
-                <div class="results-header">
-                    <h2>📋 Resultados da Busca</h2>
-                    <div id="resultsCount" class="results-count"></div>
+        <!-- Loading -->
+        <div id="loading" class="loading hidden">
+            <div class="loading-content">
+                <div class="loading-spinner">
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"></div>
                 </div>
-                <div id="jobsList" class="jobs-list"></div>
-            </section>
+                <h3>Carregando vagas...</h3>
+                <p>Conectando com a API da Bosch</p>
+                <div class="loading-progress">
+                    <div class="progress-bar"></div>
+                </div>
+            </div>
+        </div>
 
-            <!-- Lista de Departamentos/Cidades -->
-            <section id="infoList" class="info-list hidden">
-                <div class="info-header">
-                    <h2 id="infoTitle"></h2>
-                    <button class="btn btn-small" onclick="hideInfoList()">✖️ Fechar</button>
+        <!-- Resultados -->
+        <main id="resultados" class="results hidden">
+            <div class="results-header">
+                <h2 class="results-title">
+                    <span class="results-icon">📋</span>
+                    Resultados da Busca
+                </h2>
+                <div class="results-info">
+                    <span id="resultCount" class="result-count">0 vagas encontradas</span>
+                    <span id="filterStatus" class="filter-status"></span>
                 </div>
-                <div id="infoContent" class="info-content"></div>
-            </section>
+            </div>
+            
+            <div id="vagasList" class="vagas-grid"></div>
+            
+            <div class="load-more-section hidden">
+                <button id="loadMore" class="btn btn-outline">
+                    Ver mais vagas
+                </button>
+            </div>
         </main>
+
+        <!-- Erro -->
+        <div id="errorSection" class="error-section hidden">
+            <div class="error-content">
+                <div class="error-icon">⚠️</div>
+                <h3>Ops! Algo deu errado</h3>
+                <p id="errorMessage">Não foi possível carregar as vagas</p>
+                <div class="error-actions">
+                    <button id="retryBtn" class="btn btn-primary">
+                        <span class="btn-icon">🔄</span>
+                        Tentar Novamente
+                    </button>
+                    <button id="reportBtn" class="btn btn-outline">
+                        <span class="btn-icon">📧</span>
+                        Reportar Problema
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toastContainer" class="toast-container"></div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-info">
+                    <p><strong>vagas-rb.tech</strong> - Desenvolvido por <strong>Zumbaiero</strong></p>
+                    <p>Dados fornecidos pela SmartRecruiters API • Atualizado em tempo real</p>
+                </div>
+                <div class="footer-links">
+                    <a href="https://careers.smartrecruiters.com/BoschGroup/brazil" target="_blank" class="footer-link">
+                        🏢 Bosch Carreiras
+                    </a>
+                    <a href="/api/health" target="_blank" class="footer-link">
+                        📊 Status da API
+                    </a>
+                </div>
+            </div>
+        </footer>
     </div>
 
     <script src="script.js"></script>
