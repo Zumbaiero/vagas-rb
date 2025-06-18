@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vagas Bosch - Buscador de Oportunidades</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔍 Buscador de Vagas Bosch</h1>
+            <p>Encontre oportunidades na Bosch Group de forma rápida e fácil</p>
+        </header>
+
+        <main>
+            <!-- Seção de Buscas Rápidas -->
+            <section class="quick-search">
+                <h2>🚀 Buscas Rápidas</h2>
+                <div class="quick-buttons">
+                    <button class="btn btn-primary" onclick="searchJuniorSAP()">
+                        💼 Junior SAP - Campinas
+                    </button>
+                    <button class="btn btn-secondary" onclick="searchJuniorSAPCLT()">
+                        🎯 Junior SAP CLT (sem estágio)
+                    </button>
+                    <button class="btn btn-accent" onclick="searchEstagioSAP()">
+                        🎓 Estágios SAP - Campinas
+                    </button>
+                    <button class="btn btn-outline" onclick="loadDepartments()">
+                        🏢 Ver Departamentos
+                    </button>
+                    <button class="btn btn-outline" onclick="loadCities()">
+                        🌍 Ver Cidades
+                    </button>
+                </div>
+            </section>
+
+            <!-- Seção de Busca Customizada -->
+            <section class="custom-search">
+                <h2>🔧 Busca Customizada</h2>
+                <form id="customSearchForm" class="search-form">
+                    <div class="form-group">
+                        <label for="searchQuery">Palavra-chave:</label>
+                        <input type="text" id="searchQuery" placeholder="Ex: desenvolvedor, analista, SAP...">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="department">Departamento:</label>
+                            <input type="text" id="department" placeholder="Ex: IT, Engineering...">
+                        </div>
+                        <div class="form-group">
+                            <label for="city">Cidade:</label>
+                            <input type="text" id="city" placeholder="Ex: Campinas, São Paulo...">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="level">Nível (separado por vírgula):</label>
+                            <input type="text" id="level" placeholder="Ex: junior, senior, trainee...">
+                        </div>
+                        <div class="form-group">
+                            <label for="technologies">Tecnologias (separado por vírgula):</label>
+                            <input type="text" id="technologies" placeholder="Ex: SAP, Java, Python...">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="exclude">Excluir palavras (separado por vírgula):</label>
+                        <input type="text" id="exclude" placeholder="Ex: senior, estagio, terceirizado...">
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">🔍 Buscar Vagas</button>
+                        <button type="button" class="btn btn-secondary" onclick="clearForm()">🗑️ Limpar</button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Loading -->
+            <div id="loading" class="loading hidden">
+                <div class="spinner"></div>
+                <p>Buscando vagas...</p>
+            </div>
+
+            <!-- Resultados -->
+            <section id="results" class="results hidden">
+                <div class="results-header">
+                    <h2>📋 Resultados da Busca</h2>
+                    <div id="resultsCount" class="results-count"></div>
+                </div>
+                <div id="jobsList" class="jobs-list"></div>
+            </section>
+
+            <!-- Lista de Departamentos/Cidades -->
+            <section id="infoList" class="info-list hidden">
+                <div class="info-header">
+                    <h2 id="infoTitle"></h2>
+                    <button class="btn btn-small" onclick="hideInfoList()">✖️ Fechar</button>
+                </div>
+                <div id="infoContent" class="info-content"></div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
