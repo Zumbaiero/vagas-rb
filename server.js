@@ -6,7 +6,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Middleware de log para desenvolvimento
+// Logging middleware
 app.use((req, res, next) => {
   if (!isProduction) {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
@@ -14,7 +14,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Security headers para produção
+// Security headers
 app.use((req, res, next) => {
   if (isProduction) {
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -25,8 +25,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Redirect apenas de vagas-rb.tech (sem www) para www.vagas-rb.tech
-// Não redireciona se já for www nem altera rotas /api
+// Redirect plain domain to www for non-/api routes
 app.use((req, res, next) => {
   const host = req.get('host');
   if (
@@ -51,21 +50,16 @@ app.use((req, res, next) => {
   if (allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
   }
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header(
-    'Access-Control-Allow-Headers',
-    'Origin, X-Requested-With, Content-Type, Accept'
-  );
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
 
-// Parsing JSON
+// JSON parser
 app.use(express.json({ limit: '10mb' }));
 
-// Servir estáticos (public) e cache em produção
+// Static files
 if (isProduction) {
   app.use(
     express.static(path.join(__dirname, 'public'), {
@@ -103,9 +97,9 @@ app.get('/api/health', (req, res) => {
   res.json(healthData);
 });
 
-// API de vagas
+// Fetch and normalize job postings
 app.get('/api/vagas', async (req, res) => {
-  const startTime = Date.now();
+  const start = Date.now();
   try {
     console.log('🔍 Buscando vagas na SmartRecruiters...');
     const response = await axios.get(
@@ -116,60 +110,67 @@ app.get('/api/vagas', async (req, res) => {
         headers: { 'User-Agent': 'VagasRB-Tech/2.0 (vagas-rb.tech)' }
       }
     );
-    if (!response.data || !response.data.content) {
-      throw new Error('Resposta inválida da API SmartRecruiters');
-    }
 
-    const vagas = response.data.content
-      .filter(v => v && v.name && v.id)
-      .map(vaga => {
-        const normalize = (val, def = 'Não informado') =>
-          val == null || val === '' ? def : String(val);
+    const postings = Array.isArray(response.data.content)
+      ? response.data.content
+      : [];
 
-        // Local
+    const normalize = (val, def = null) =>
+      val == null || val === '' ? def : String(val);
+
+    const vagas = postings
+      .filter(p => p && p.id && p.name)
+      .map(p => {
+        // Determine URLs: try jobAdUrl first, then applyUrl, then any URI field
+        const urlView = normalize(p.jobAdUrl) ||
+                        normalize(p.applyUrl) ||
+                        normalize(p.uri) ||
+                        '#';
+        const urlApply = normalize(p.applyUrl) ||
+                         normalize(p.jobAdUrl) ||
+                         normalize(p.uri) ||
+                         '#';
+
+        // Location
         let local = 'Brasil';
-        if (vaga.location) {
-          if (vaga.location.city && vaga.location.country)
-            local = `${vaga.location.city}, ${vaga.location.country}`;
-          else if (vaga.location.city) local = vaga.location.city;
-          else if (vaga.location.country) local = vaga.location.country;
+        if (p.location) {
+          const city = normalize(p.location.city);
+          const country = normalize(p.location.country);
+          if (city && country) local = `${city}, ${country}`;
+          else if (city) local = city;
+          else if (country) local = country;
         }
 
-        // Departamento
-        let departamento = 'Não informado';
-        if (vaga.department && vaga.department.label) {
-          departamento = vaga.department.label;
-        }
+        // Department
+        const departamento = normalize(p.department?.label, 'Não informado');
 
-        // Nível a partir do título
-        const titulo = normalize(vaga.name, 'Título não disponível');
-        let nivel = 'Não especificado';
+        // Title & level
+        const titulo = normalize(p.name, 'Título não disponível');
         const low = titulo.toLowerCase();
+        let nivel = 'Não especificado';
         if (/estagi|trainee|intern/.test(low)) nivel = 'Estágio';
         else if (/junior|jr/.test(low)) nivel = 'Júnior';
-        else if (/senior|sr/.test(low)) nivel = 'Sênior';
         else if (/pleno|mid/.test(low)) nivel = 'Pleno';
+        else if (/senior|sr/.test(low)) nivel = 'Sênior';
 
         return {
-          id: normalize(vaga.id),
+          id: normalize(p.id),
           titulo,
           local,
           departamento,
           nivel,
-          link: normalize(vaga.jobAdUrl, '#'),
-          linkCandidatura: normalize(vaga.applyUrl || vaga.jobAdUrl, '#'),
-          dataExpiracao: vaga.expirationDate || null,
-          dataCriacao: vaga.postingDate || null,
-          referencia: normalize(vaga.refNumber, null),
+          link: urlView,
+          linkCandidatura: urlApply,
+          dataExpiracao: normalize(p.expirationDate, null),
+          dataCriacao: normalize(p.postingDate, null),
+          referencia: normalize(p.refNumber, null),
           empresa: 'Bosch Group',
           pais: 'Brasil'
         };
       })
       .filter(v => v.titulo !== 'Título não disponível');
 
-    console.log(
-      `✅ Processadas ${vagas.length} vagas em ${Date.now() - startTime}ms`
-    );
+    console.log(`✅ Processadas ${vagas.length} vagas em ${Date.now() - start}ms`);
     res.json({
       success: true,
       total: vagas.length,
@@ -177,21 +178,21 @@ app.get('/api/vagas', async (req, res) => {
       timestamp: new Date().toISOString(),
       domain: 'vagas-rb.tech',
       version: '2.0.0',
-      processTime: `${Date.now() - startTime}ms`
+      processTime: `${Date.now() - start}ms`
     });
-  } catch (error) {
-    console.error('❌ Erro ao buscar vagas:', error.message);
+  } catch (err) {
+    console.error('❌ Erro ao buscar vagas:', err.message);
     res.status(500).json({
       success: false,
       erro: 'Erro ao buscar vagas da Bosch',
-      details: isProduction ? 'Erro interno do servidor' : error.message,
+      details: isProduction ? 'Erro interno do servidor' : err.message,
       timestamp: new Date().toISOString(),
       domain: 'vagas-rb.tech'
     });
   }
 });
 
-// Sitemap e robots
+// Sitemap & robots
 app.get('/sitemap.xml', (req, res) => {
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -210,7 +211,7 @@ Sitemap: https://www.vagas-rb.tech/sitemap.xml`;
   res.type('text/plain').send(robots);
 });
 
-// SPA catch-all (serve index.html ou retorna 404 para API não encontradas)
+// SPA catch-all (serve index.html or 404 API)
 app.use((req, res) => {
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({
@@ -224,7 +225,7 @@ app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Error handler global
+// Global error handler
 app.use((err, req, res, next) => {
   console.error('❌ Erro não tratado:', err);
   res.status(500).json({
@@ -234,7 +235,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Inicia o servidor em local
+// Run locally if invoked directly
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
