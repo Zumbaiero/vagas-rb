@@ -1,7 +1,12 @@
 class VagasBoschApp {
     constructor() {
         this.API_BASE = this.detectarApiBase();
-        console.log('🔗 API Base detectada:', this.API_BASE);
+        this.VERSION = '2.0.0';
+        this.DOMAIN = 'www.vagas-rb.tech';
+        
+        console.log(`🔗 API Base detectada: ${this.API_BASE}`);
+        console.log(`🌍 Domínio: ${this.DOMAIN}`);
+        console.log(`📊 Versão: ${this.VERSION}`);
         
         this.state = {
             vagas: [],
@@ -28,70 +33,41 @@ class VagasBoschApp {
         
         if (hostname === 'localhost' || hostname === '127.0.0.1') {
             return 'http://localhost:3000/api';
+        } else if (hostname.includes('vagas-rb.tech')) {
+            return `${protocol}//www.vagas-rb.tech/api`;
         } else {
             return '/api';
         }
     }
     
     inicializarElementos() {
-        return {
-            // Header stats
-            totalVagasGeral: document.getElementById('totalVagasGeral'),
-            ultimaAtualizacao: document.getElementById('ultimaAtualizacao'),
-            
-            // Controles
-            searchInput: document.getElementById('searchInput'),
-            clearSearch: document.getElementById('clearSearch'),
-            filterTabs: document.querySelectorAll('.filter-tab'),
-            cityTabs: document.querySelectorAll('.city-tab'),
-            loadVagas: document.getElementById('loadVagas'),
-            refreshVagas: document.getElementById('refreshVagas'),
-            sortToggle: document.getElementById('sortToggle'),
-            clearAllFilters: document.getElementById('clearAllFilters'),
-            
-            // Contadores dos filtros
-            countAll: document.getElementById('countAll'),
-            countJunior: document.getElementById('countJunior'),
-            countEstagio: document.getElementById('countEstagio'),
-            countCampinas: document.getElementById('countCampinas'),
-            countSap: document.getElementById('countSap'),
-            countEngineering: document.getElementById('countEngineering'),
-            
-            // Contadores das cidades
-            countAllCities: document.getElementById('countAllCities'),
-            countCidadeCampinas: document.getElementById('countCidadeCampinas'),
-            countCidadeSaoPaulo: document.getElementById('countCidadeSaoPaulo'),
-            countCidadeCuritiba: document.getElementById('countCidadeCuritiba'),
-            countCidadePortoAlegre: document.getElementById('countCidadePortoAlegre'),
-            
-            // Seções principais
-            loading: document.getElementById('loading'),
-            resultados: document.getElementById('resultados'),
-            errorSection: document.getElementById('errorSection'),
-            
-            // Resultados
-            resultCount: document.getElementById('resultCount'),
-            filterStatus: document.getElementById('filterStatus'),
-            vagasList: document.getElementById('vagasList'),
-            loadMore: document.getElementById('loadMore'),
-            
-            // Erro
-            errorMessage: document.getElementById('errorMessage'),
-            errorTime: document.getElementById('errorTime'),
-            retryBtn: document.getElementById('retryBtn'),
-            
-            // Toast
-            toastContainer: document.getElementById('toastContainer')
-        };
+        const elementos = {};
+        
+        const ids = [
+            'totalVagasGeral', 'ultimaAtualizacao', 'searchInput', 'clearSearch',
+            'loadVagas', 'refreshVagas', 'sortToggle', 'clearAllFilters',
+            'countAll', 'countJunior', 'countEstagio', 'countCampinas', 'countSap', 'countEngineering',
+            'countAllCities', 'countCidadeCampinas', 'countCidadeSaoPaulo', 'countCidadeCuritiba', 'countCidadePortoAlegre',
+            'loading', 'resultados', 'errorSection', 'resultCount', 'filterStatus', 'vagasList', 'loadMore',
+            'errorMessage', 'errorTime', 'retryBtn', 'toastContainer'
+        ];
+        
+        ids.forEach(id => {
+            elementos[id] = document.getElementById(id);
+        });
+        
+        elementos.filterTabs = document.querySelectorAll('.filter-tab');
+        elementos.cityTabs = document.querySelectorAll('.city-tab');
+        
+        return elementos;
     }
     
     init() {
-        console.log('🚀 Inicializando Vagas Bosch App para vagas-rb.tech');
+        console.log(`🚀 Inicializando Vagas Bosch App para ${this.DOMAIN}`);
         this.configurarEventListeners();
         this.testarConexaoAPI();
         this.carregarVagas();
         this.atualizarHorario();
-        
         setInterval(() => this.atualizarHorario(), 60000);
     }
     
@@ -103,35 +79,51 @@ class VagasBoschApp {
             if (response.ok) {
                 const data = await response.json();
                 console.log('✅ API conectada:', data);
-                this.mostrarToast('✅ Conectado com vagas-rb.tech', 'success');
+                this.mostrarToast(`✅ Conectado com ${this.DOMAIN}`, 'success');
             } else {
                 console.warn('⚠️ API respondeu com erro:', response.status);
+                this.mostrarToast('⚠️ API com problemas', 'warning');
             }
         } catch (error) {
             console.error('❌ Erro na conexão:', error);
+            this.mostrarToast('❌ Erro de conexão', 'error');
         }
     }
     
     configurarEventListeners() {
-        // Botões principais
-        this.elementos.loadVagas.addEventListener('click', () => this.carregarVagas());
-        this.elementos.refreshVagas.addEventListener('click', () => this.carregarVagas(true));
-        this.elementos.retryBtn.addEventListener('click', () => this.carregarVagas());
-        this.elementos.clearAllFilters.addEventListener('click', () => this.limparTodosFiltros());
+        if (this.elementos.loadVagas) {
+            this.elementos.loadVagas.addEventListener('click', () => this.carregarVagas());
+        }
         
-        // Busca
-        this.elementos.searchInput.addEventListener('input', (e) => {
-            this.state.termoBusca = e.target.value || '';
-            this.debounce(() => this.aplicarFiltros(), 300)();
-        });
+        if (this.elementos.refreshVagas) {
+            this.elementos.refreshVagas.addEventListener('click', () => this.carregarVagas(true));
+        }
         
-        this.elementos.clearSearch.addEventListener('click', () => {
-            this.elementos.searchInput.value = '';
-            this.state.termoBusca = '';
-            this.aplicarFiltros();
-        });
+        if (this.elementos.retryBtn) {
+            this.elementos.retryBtn.addEventListener('click', () => this.carregarVagas());
+        }
         
-        // Filtros rápidos
+        if (this.elementos.clearAllFilters) {
+            this.elementos.clearAllFilters.addEventListener('click', () => this.limparTodosFiltros());
+        }
+        
+        if (this.elementos.searchInput) {
+            this.elementos.searchInput.addEventListener('input', (e) => {
+                this.state.termoBusca = e.target.value || '';
+                this.debounce(() => this.aplicarFiltros(), 300)();
+            });
+        }
+        
+        if (this.elementos.clearSearch) {
+            this.elementos.clearSearch.addEventListener('click', () => {
+                if (this.elementos.searchInput) {
+                    this.elementos.searchInput.value = '';
+                    this.state.termoBusca = '';
+                    this.aplicarFiltros();
+                }
+            });
+        }
+        
         this.elementos.filterTabs.forEach(tab => {
             tab.addEventListener('click', (e) => {
                 const filtro = e.currentTarget.dataset.filter;
@@ -139,7 +131,6 @@ class VagasBoschApp {
             });
         });
         
-        // Filtros por cidade
         this.elementos.cityTabs.forEach(tab => {
             tab.addEventListener('click', (e) => {
                 const cidade = e.currentTarget.dataset.city;
@@ -147,18 +138,40 @@ class VagasBoschApp {
             });
         });
         
-        // Ordenação
-        this.elementos.sortToggle.addEventListener('click', () => {
-            this.state.ordenacaoAsc = !this.state.ordenacaoAsc;
-            this.elementos.sortToggle.querySelector('.btn-text').textContent = 
-                this.state.ordenacaoAsc ? 'A-Z' : 'Z-A';
-            this.aplicarFiltros();
-        });
+        if (this.elementos.sortToggle) {
+            this.elementos.sortToggle.addEventListener('click', () => {
+                this.state.ordenacaoAsc = !this.state.ordenacaoAsc;
+                const btnText = this.elementos.sortToggle.querySelector('.btn-text');
+                if (btnText) {
+                    btnText.textContent = this.state.ordenacaoAsc ? 'A-Z' : 'Z-A';
+                }
+                this.aplicarFiltros();
+            });
+        }
         
-        // Load more
-        this.elementos.loadMore.addEventListener('click', () => {
-            this.state.vagasExibidas += 20;
-            this.renderizarVagas();
+        if (this.elementos.loadMore) {
+            this.elementos.loadMore.addEventListener('click', () => {
+                this.state.vagasExibidas += 20;
+                this.renderizarVagas();
+            });
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                if (this.elementos.searchInput) {
+                    this.elementos.searchInput.focus();
+                }
+            }
+            
+            if (e.key === 'Escape' && this.elementos.searchInput === document.activeElement) {
+                if (this.elementos.searchInput) {
+                    this.elementos.searchInput.blur();
+                    this.elementos.searchInput.value = '';
+                    this.state.termoBusca = '';
+                    this.aplicarFiltros();
+                }
+            }
         });
     }
     
@@ -167,6 +180,10 @@ class VagasBoschApp {
         
         this.state.loading = true;
         this.mostrarLoading();
+        
+        if (isRefresh) {
+            this.mostrarToast(`🔄 Atualizando vagas de ${this.DOMAIN}...`, 'info');
+        }
         
         try {
             console.log('🔍 Carregando vagas da API...');
@@ -186,12 +203,12 @@ class VagasBoschApp {
             const dados = await response.json();
             
             if (dados.success && Array.isArray(dados.vagas)) {
-                // FILTRAR VAGAS UNDEFINED/NULAS
                 this.state.vagas = dados.vagas.filter(vaga => {
                     return vaga && 
                            vaga.titulo && 
                            vaga.local && 
-                           vaga.departamento;
+                           vaga.departamento &&
+                           vaga.titulo !== 'Título não disponível';
                 });
                 
                 this.state.ultimaAtualizacao = new Date();
@@ -206,10 +223,13 @@ class VagasBoschApp {
                     
                 this.mostrarToast(mensagem, 'success');
                 
-                // Mostrar controles adicionais
-                this.elementos.refreshVagas.classList.remove('hidden');
-                this.elementos.sortToggle.classList.remove('hidden');
-                this.elementos.clearAllFilters.classList.remove('hidden');
+                console.log(`✅ ${this.state.vagas.length} vagas carregadas com sucesso`);
+                
+                ['refreshVagas', 'sortToggle', 'clearAllFilters'].forEach(id => {
+                    if (this.elementos[id]) {
+                        this.elementos[id].classList.remove('hidden');
+                    }
+                });
                 
             } else {
                 throw new Error(dados.erro || 'Formato de dados inválido');
@@ -217,12 +237,24 @@ class VagasBoschApp {
             
         } catch (error) {
             console.error('❌ Erro ao carregar vagas:', error);
-            this.mostrarErro(error.message);
             
-            // Atualizar timestamp do erro
+            let mensagemErro = error.message;
+            
+            if (error.message.includes('Failed to fetch')) {
+                mensagemErro = `Erro de conexão com ${this.DOMAIN}. Verifique sua internet.`;
+            } else if (error.message.includes('404')) {
+                mensagemErro = `API não encontrada em ${this.DOMAIN}. Tente novamente.`;
+            } else if (error.message.includes('500')) {
+                mensagemErro = `Erro interno da API ${this.DOMAIN}. Tente novamente em alguns minutos.`;
+            }
+            
+            this.mostrarErro(mensagemErro);
+            this.mostrarToast('❌ Erro ao carregar vagas', 'error');
+            
             if (this.elementos.errorTime) {
                 this.elementos.errorTime.textContent = new Date().toLocaleString('pt-BR');
             }
+            
         } finally {
             this.state.loading = false;
             this.ocultarLoading();
@@ -234,7 +266,8 @@ class VagasBoschApp {
         this.state.vagasExibidas = 20;
         
         this.elementos.filterTabs.forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.filter === filtro);
+            const isActive = tab.dataset.filter === filtro;
+            tab.classList.toggle('active', isActive);
         });
         
         this.aplicarFiltros();
@@ -245,28 +278,31 @@ class VagasBoschApp {
         this.state.vagasExibidas = 20;
         
         this.elementos.cityTabs.forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.city === cidade);
+            const isActive = tab.dataset.city === cidade;
+            tab.classList.toggle('active', isActive);
         });
         
         this.aplicarFiltros();
     }
     
     limparTodosFiltros() {
-        // Resetar estado
         this.state.filtroAtivo = 'all';
         this.state.cidadeAtiva = 'all';
         this.state.termoBusca = '';
         this.state.vagasExibidas = 20;
         
-        // Resetar UI
-        this.elementos.searchInput.value = '';
+        if (this.elementos.searchInput) {
+            this.elementos.searchInput.value = '';
+        }
         
         this.elementos.filterTabs.forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.filter === 'all');
+            const isActive = tab.dataset.filter === 'all';
+            tab.classList.toggle('active', isActive);
         });
         
         this.elementos.cityTabs.forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.city === 'all');
+            const isActive = tab.dataset.city === 'all';
+            tab.classList.toggle('active', isActive);
         });
         
         this.aplicarFiltros();
@@ -276,7 +312,6 @@ class VagasBoschApp {
     aplicarFiltros() {
         let vagasFiltradas = [...this.state.vagas];
         
-        // Verificar se vagas existem e têm propriedades necessárias
         vagasFiltradas = vagasFiltradas.filter(vaga => {
             return vaga && 
                    typeof vaga.titulo === 'string' && 
@@ -284,20 +319,21 @@ class VagasBoschApp {
                    typeof vaga.departamento === 'string';
         });
         
-        // Filtro por categoria
         switch (this.state.filtroAtivo) {
             case 'junior':
                 vagasFiltradas = vagasFiltradas.filter(vaga => 
                     vaga.titulo.toLowerCase().includes('junior') || 
                     vaga.titulo.toLowerCase().includes('júnior') ||
-                    vaga.titulo.toLowerCase().includes('jr'));
+                    vaga.titulo.toLowerCase().includes('jr') ||
+                    (vaga.nivel && vaga.nivel.toLowerCase() === 'júnior'));
                 break;
             case 'estagio':
                 vagasFiltradas = vagasFiltradas.filter(vaga => 
                     vaga.titulo.toLowerCase().includes('estágio') ||
                     vaga.titulo.toLowerCase().includes('estagio') ||
                     vaga.titulo.toLowerCase().includes('trainee') ||
-                    vaga.titulo.toLowerCase().includes('intern'));
+                    vaga.titulo.toLowerCase().includes('intern') ||
+                    (vaga.nivel && vaga.nivel.toLowerCase() === 'estágio'));
                 break;
             case 'campinas':
                 vagasFiltradas = vagasFiltradas.filter(vaga => 
@@ -312,29 +348,28 @@ class VagasBoschApp {
                 vagasFiltradas = vagasFiltradas.filter(vaga => 
                     vaga.departamento.toLowerCase().includes('engineering') ||
                     vaga.departamento.toLowerCase().includes('engenharia') ||
-                    vaga.titulo.toLowerCase().includes('engineer'));
+                    vaga.titulo.toLowerCase().includes('engineer') ||
+                    vaga.titulo.toLowerCase().includes('engenheiro'));
                 break;
         }
         
-        // Filtro por cidade
         if (this.state.cidadeAtiva !== 'all') {
             vagasFiltradas = vagasFiltradas.filter(vaga => 
                 vaga.local.toLowerCase().includes(this.state.cidadeAtiva.toLowerCase()));
         }
         
-        // Filtro por busca
-        if (this.state.termoBusca) {
-            const termo = this.state.termoBusca.toLowerCase();
+        if (this.state.termoBusca.trim()) {
+            const termo = this.state.termoBusca.toLowerCase().trim();
             vagasFiltradas = vagasFiltradas.filter(vaga =>
                 vaga.titulo.toLowerCase().includes(termo) ||
                 vaga.departamento.toLowerCase().includes(termo) ||
-                vaga.local.toLowerCase().includes(termo)
+                vaga.local.toLowerCase().includes(termo) ||
+                (vaga.nivel && vaga.nivel.toLowerCase().includes(termo))
             );
         }
         
-        // Ordenação
         vagasFiltradas.sort((a, b) => {
-            const comparison = a.titulo.localeCompare(b.titulo);
+            const comparison = a.titulo.localeCompare(b.titulo, 'pt-BR');
             return this.state.ordenacaoAsc ? comparison : -comparison;
         });
         
@@ -345,7 +380,6 @@ class VagasBoschApp {
     }
     
     atualizarContadores() {
-        // Função helper para contar com segurança
         const contarVagas = (filtroFunc) => {
             return this.state.vagas.filter(vaga => {
                 if (!vaga || !vaga.titulo || !vaga.local || !vaga.departamento) {
@@ -355,18 +389,19 @@ class VagasBoschApp {
             }).length;
         };
         
-        // Contadores dos filtros rápidos
         const contadores = {
             all: this.state.vagas.length,
             junior: contarVagas(v => 
                 v.titulo.toLowerCase().includes('junior') || 
                 v.titulo.toLowerCase().includes('júnior') ||
-                v.titulo.toLowerCase().includes('jr')),
+                v.titulo.toLowerCase().includes('jr') ||
+                (v.nivel && v.nivel.toLowerCase() === 'júnior')),
             estagio: contarVagas(v => 
                 v.titulo.toLowerCase().includes('estágio') ||
                 v.titulo.toLowerCase().includes('estagio') ||
                 v.titulo.toLowerCase().includes('trainee') ||
-                v.titulo.toLowerCase().includes('intern')),
+                v.titulo.toLowerCase().includes('intern') ||
+                (v.nivel && v.nivel.toLowerCase() === 'estágio')),
             campinas: contarVagas(v => v.local.toLowerCase().includes('campinas')),
             sap: contarVagas(v => 
                 v.titulo.toLowerCase().includes('sap') || 
@@ -374,31 +409,39 @@ class VagasBoschApp {
             engineering: contarVagas(v => 
                 v.departamento.toLowerCase().includes('engineering') ||
                 v.departamento.toLowerCase().includes('engenharia') ||
-                v.titulo.toLowerCase().includes('engineer'))
+                v.titulo.toLowerCase().includes('engineer') ||
+                v.titulo.toLowerCase().includes('engenheiro'))
         };
         
-        // Contadores das cidades
         const contadoresCidades = {
             all: this.state.vagas.length,
             campinas: contarVagas(v => v.local.toLowerCase().includes('campinas')),
-            saoPaulo: contarVagas(v => v.local.toLowerCase().includes('são paulo') || v.local.toLowerCase().includes('sao paulo')),
+            saoPaulo: contarVagas(v => 
+                v.local.toLowerCase().includes('são paulo') || 
+                v.local.toLowerCase().includes('sao paulo')),
             curitiba: contarVagas(v => v.local.toLowerCase().includes('curitiba')),
-            portoAlegre: contarVagas(v => v.local.toLowerCase().includes('porto alegre'))
+            portoAlegre: contarVagas(v => 
+                v.local.toLowerCase().includes('porto alegre'))
         };
         
-        // Atualizar UI
-        if (this.elementos.countAll) this.elementos.countAll.textContent = contadores.all;
-        if (this.elementos.countJunior) this.elementos.countJunior.textContent = contadores.junior;
-        if (this.elementos.countEstagio) this.elementos.countEstagio.textContent = contadores.estagio;
-        if (this.elementos.countCampinas) this.elementos.countCampinas.textContent = contadores.campinas;
-        if (this.elementos.countSap) this.elementos.countSap.textContent = contadores.sap;
-        if (this.elementos.countEngineering) this.elementos.countEngineering.textContent = contadores.engineering;
+        const updateCount = (elementId, value) => {
+            if (this.elementos[elementId]) {
+                this.elementos[elementId].textContent = value;
+            }
+        };
         
-        if (this.elementos.countAllCities) this.elementos.countAllCities.textContent = contadoresCidades.all;
-        if (this.elementos.countCidadeCampinas) this.elementos.countCidadeCampinas.textContent = contadoresCidades.campinas;
-        if (this.elementos.countCidadeSaoPaulo) this.elementos.countCidadeSaoPaulo.textContent = contadoresCidades.saoPaulo;
-        if (this.elementos.countCidadeCuritiba) this.elementos.countCidadeCuritiba.textContent = contadoresCidades.curitiba;
-        if (this.elementos.countCidadePortoAlegre) this.elementos.countCidadePortoAlegre.textContent = contadoresCidades.portoAlegre;
+        updateCount('countAll', contadores.all);
+        updateCount('countJunior', contadores.junior);
+        updateCount('countEstagio', contadores.estagio);
+        updateCount('countCampinas', contadores.campinas);
+        updateCount('countSap', contadores.sap);
+        updateCount('countEngineering', contadores.engineering);
+        
+        updateCount('countAllCities', contadoresCidades.all);
+        updateCount('countCidadeCampinas', contadoresCidades.campinas);
+        updateCount('countCidadeSaoPaulo', contadoresCidades.saoPaulo);
+        updateCount('countCidadeCuritiba', contadoresCidades.curitiba);
+        updateCount('countCidadePortoAlegre', contadoresCidades.portoAlegre);
     }
     
     renderizarVagas() {
@@ -409,6 +452,8 @@ class VagasBoschApp {
                 `${this.state.vagasFiltradas.length} vaga${this.state.vagasFiltradas.length !== 1 ? 's' : ''} encontrada${this.state.vagasFiltradas.length !== 1 ? 's' : ''}`;
         }
         
+        if (!this.elementos.vagasList) return;
+        
         if (vagasParaExibir.length === 0) {
             this.elementos.vagasList.innerHTML = `
                 <div class="sem-vagas">
@@ -416,9 +461,13 @@ class VagasBoschApp {
                         <div style="font-size: 4em; margin-bottom: 20px;">🤷‍♂️</div>
                         <h3>Nenhuma vaga encontrada</h3>
                         <p>Tente ajustar os filtros ou termo de busca</p>
-                        <button onclick="window.vagasApp.limparTodosFiltros()" style="margin-top: 15px; padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                        <button onclick="window.vagasApp.limparTodosFiltros()" 
+                                style="margin-top: 15px; padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; font-family: inherit;">
                             🗑️ Limpar Filtros
                         </button>
+                        <p style="margin-top: 15px; font-size: 0.9em;">
+                            <small>Fonte: ${this.DOMAIN}</small>
+                        </p>
                     </div>
                 </div>
             `;
@@ -427,7 +476,6 @@ class VagasBoschApp {
                 this.criarCardVaga(vaga, index)).join('');
         }
         
-        // Load more button
         const loadMoreSection = document.querySelector('.load-more-section');
         if (loadMoreSection) {
             if (this.state.vagasFiltradas.length > this.state.vagasExibidas) {
@@ -435,6 +483,10 @@ class VagasBoschApp {
             } else {
                 loadMoreSection.classList.add('hidden');
             }
+        }
+        
+        if (this.elementos.vagasList) {
+            this.elementos.vagasList.classList.add('fade-in');
         }
     }
     
@@ -446,41 +498,68 @@ class VagasBoschApp {
         const dataExpiracao = vaga.dataExpiracao 
             ? new Date(vaga.dataExpiracao).toLocaleDateString('pt-BR')
             : null;
+            
+        const dataCriacao = vaga.dataCriacao
+            ? new Date(vaga.dataCriacao).toLocaleDateString('pt-BR')
+            : null;
         
         return `
             <div class="vaga-card" style="animation-delay: ${index * 0.1}s">
                 <div class="vaga-header">
-                    <h3 class="vaga-titulo">${vaga.titulo || 'Título não disponível'}</h3>
-                    ${vaga.referencia && vaga.referencia !== 'null' ? `<span class="vaga-ref">Ref: ${vaga.referencia}</span>` : ''}
+                    <h3 class="vaga-titulo">${vaga.titulo}</h3>
+                    ${vaga.referencia && vaga.referencia !== 'null' && vaga.referencia !== 'Não informado' 
+                        ? `<span class="vaga-ref">Ref: ${vaga.referencia}</span>` 
+                        : ''}
                 </div>
                 
                 <div class="vaga-info">
                     <div class="vaga-info-item">
                         <span class="info-icon">📍</span>
-                        <strong>Local:</strong> ${vaga.local || 'Não informado'}
+                        <strong>Local:</strong> ${vaga.local}
                     </div>
                     <div class="vaga-info-item">
                         <span class="info-icon">🏢</span>
-                        <strong>Departamento:</strong> ${vaga.departamento || 'Não informado'}
+                        <strong>Departamento:</strong> ${vaga.departamento}
                     </div>
+                    ${vaga.nivel && vaga.nivel !== 'Não especificado' ? `
+                        <div class="vaga-info-item">
+                            <span class="info-icon">⭐</span>
+                            <strong>Nível:</strong> ${vaga.nivel}
+                        </div>
+                    ` : ''}
                     ${dataExpiracao ? `
                         <div class="vaga-info-item">
                             <span class="info-icon">⏰</span>
                             <strong>Expira em:</strong> ${dataExpiracao}
                         </div>
                     ` : ''}
+                    ${dataCriacao ? `
+                        <div class="vaga-info-item">
+                            <span class="info-icon">📅</span>
+                            <strong>Publicada em:</strong> ${dataCriacao}
+                        </div>
+                    ` : ''}
                 </div>
                 
                 <div class="vaga-actions">
-                    <a href="${vaga.link || '#'}" target="_blank" class="vaga-btn vaga-btn-primary">
+                    <a href="${vaga.link || '#'}" 
+                       target="_blank" 
+                       rel="noopener noreferrer"
+                       class="vaga-btn vaga-btn-primary">
                         <span>📋</span> Ver Vaga
                     </a>
                     ${vaga.linkCandidatura && vaga.linkCandidatura !== vaga.link && vaga.linkCandidatura !== '#' ? `
-                        <a href="${vaga.linkCandidatura}" target="_blank" class="vaga-btn vaga-btn-success">
+                        <a href="${vaga.linkCandidatura}" 
+                           target="_blank" 
+                           rel="noopener noreferrer"
+                           class="vaga-btn vaga-btn-success">
                             <span>✉️</span> Candidatar-se
                         </a>
                     ` : ''}
-                    <a href="https://careers.smartrecruiters.com/BoschGroup/brazil" target="_blank" class="vaga-btn vaga-btn-secondary">
+                    <a href="https://careers.smartrecruiters.com/BoschGroup/brazil" 
+                       target="_blank" 
+                       rel="noopener noreferrer"
+                       class="vaga-btn vaga-btn-secondary">
                         <span>🏢</span> Bosch Carreiras
                     </a>
                 </div>
@@ -617,13 +696,18 @@ class VagasBoschApp {
             timeout = setTimeout(later, wait);
         };
     }
+    
+    trackEvent(event, data = {}) {
+        // Analytics placeholder
+        console.log(`📊 Event: ${event}`, data);
+    }
 }
 
 // Inicializar aplicação
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🌍 vagas-rb.tech carregando...');
-    console.log('👤 Desenvolvido por Zumbaiero');
-    console.log('📅 18/06/2025 - 23:45 UTC');
+    console.log('🌍 www.vagas-rb.tech carregando...');
+    console.log('👤 Desenvolvido por: Zumbaiero');
+    console.log('📅 Deploy: 19/06/2025 - 00:37 UTC');
     
     try {
         window.vagasApp = new VagasBoschApp();
