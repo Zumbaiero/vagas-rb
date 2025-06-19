@@ -1,8 +1,9 @@
 {
   "version": 2,
+  "name": "vagas-rb-tech",
   "builds": [
     {
-      "src": "index.js",
+      "src": "server.js",
       "use": "@vercel/node"
     }
   ],
@@ -15,5 +16,13 @@
       "src": "/(.*)",
       "dest": "public/$1"
     }
-  ]
+  ],
+  "functions": {
+    "server.js": {
+      "maxDuration": 30
+    }
+  },
+  "env": {
+    "NODE_ENV": "production"
+  }
 }

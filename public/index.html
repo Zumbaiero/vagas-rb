@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vagas Bosch Brasil - vagas-rb.tech</title>
     <meta name="description" content="Encontre oportunidades de trabalho na Bosch Group no Brasil">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
 </head>
 <body>
@@ -18,6 +18,7 @@
                     Vagas Bosch Brasil
                 </h1>
                 <p class="subtitle">Encontre sua próxima oportunidade na Bosch Group</p>
+                <small class="domain-info">vagas-rb.tech</small>
                 <div class="stats">
                     <div class="stat-item">
                         <span class="stat-number" id="totalVagasGeral">-</span>
@@ -39,23 +40,57 @@
                     <button id="clearSearch" class="clear-btn" title="Limpar busca">✕</button>
                 </div>
                 
-                <div class="filter-tabs">
-                    <button class="filter-tab active" data-filter="all">
-                        <span class="tab-icon">📋</span>
-                        Todas <span class="tab-count" id="countAll">0</span>
-                    </button>
-                    <button class="filter-tab" data-filter="campinas">
-                        <span class="tab-icon">📍</span>
-                        Campinas <span class="tab-count" id="countCampinas">0</span>
-                    </button>
-                    <button class="filter-tab" data-filter="sap">
-                        <span class="tab-icon">💼</span>
-                        SAP <span class="tab-count" id="countSap">0</span>
-                    </button>
-                    <button class="filter-tab" data-filter="engineering">
-                        <span class="tab-icon">⚙️</span>
-                        Engenharia <span class="tab-count" id="countEngineering">0</span>
-                    </button>
+                <!-- Filtros Rápidos - NOVOS FILTROS JUNIOR E ESTÁGIO -->
+                <div class="quick-filters">
+                    <h3 class="filters-title">🚀 Filtros Rápidos</h3>
+                    <div class="filter-tabs">
+                        <button class="filter-tab active" data-filter="all">
+                            <span class="tab-icon">📋</span>
+                            Todas <span class="tab-count" id="countAll">0</span>
+                        </button>
+                        <button class="filter-tab" data-filter="junior">
+                            <span class="tab-icon">🌟</span>
+                            Júnior <span class="tab-count" id="countJunior">0</span>
+                        </button>
+                        <button class="filter-tab" data-filter="estagio">
+                            <span class="tab-icon">🎓</span>
+                            Estágio <span class="tab-count" id="countEstagio">0</span>
+                        </button>
+                        <button class="filter-tab" data-filter="campinas">
+                            <span class="tab-icon">📍</span>
+                            Campinas <span class="tab-count" id="countCampinas">0</span>
+                        </button>
+                        <button class="filter-tab" data-filter="sap">
+                            <span class="tab-icon">💼</span>
+                            SAP <span class="tab-count" id="countSap">0</span>
+                        </button>
+                        <button class="filter-tab" data-filter="engineering">
+                            <span class="tab-icon">⚙️</span>
+                            Engenharia <span class="tab-count" id="countEngineering">0</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filtros por Cidade - NOVO -->
+                <div class="city-filters">
+                    <h3 class="filters-title">🌍 Filtrar por Cidade</h3>
+                    <div class="city-tabs">
+                        <button class="city-tab active" data-city="all">
+                            Todas as Cidades <span class="tab-count" id="countAllCities">0</span>
+                        </button>
+                        <button class="city-tab" data-city="campinas">
+                            Campinas <span class="tab-count" id="countCidadeCampinas">0</span>
+                        </button>
+                        <button class="city-tab" data-city="sao paulo">
+                            São Paulo <span class="tab-count" id="countCidadeSaoPaulo">0</span>
+                        </button>
+                        <button class="city-tab" data-city="curitiba">
+                            Curitiba <span class="tab-count" id="countCidadeCuritiba">0</span>
+                        </button>
+                        <button class="city-tab" data-city="porto alegre">
+                            Porto Alegre <span class="tab-count" id="countCidadePortoAlegre">0</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="action-buttons">
@@ -71,6 +106,10 @@
                         <span class="btn-icon">📊</span>
                         <span class="btn-text">A-Z</span>
                     </button>
+                    <button id="clearAllFilters" class="btn btn-warning hidden">
+                        <span class="btn-icon">🗑️</span>
+                        <span class="btn-text">Limpar Filtros</span>
+                    </button>
                 </div>
             </div>
         </section>
@@ -84,7 +123,7 @@
                     <div class="spinner-ring"></div>
                 </div>
                 <h3>Carregando vagas...</h3>
-                <p>Conectando com a API da Bosch</p>
+                <p>Conectando com a API da Bosch em vagas-rb.tech</p>
                 <div class="loading-progress">
                     <div class="progress-bar"></div>
                 </div>
@@ -119,15 +158,20 @@
                 <div class="error-icon">⚠️</div>
                 <h3>Ops! Algo deu errado</h3>
                 <p id="errorMessage">Não foi possível carregar as vagas</p>
+                <div class="error-debug">
+                    <p><strong>Site:</strong> vagas-rb.tech</p>
+                    <p><strong>API:</strong> /api/vagas</p>
+                    <p><strong>Hora:</strong> <span id="errorTime">-</span></p>
+                </div>
                 <div class="error-actions">
                     <button id="retryBtn" class="btn btn-primary">
                         <span class="btn-icon">🔄</span>
                         Tentar Novamente
                     </button>
-                    <button id="reportBtn" class="btn btn-outline">
-                        <span class="btn-icon">📧</span>
-                        Reportar Problema
-                    </button>
+                    <a href="/api/health" target="_blank" class="btn btn-outline">
+                        <span class="btn-icon">📊</span>
+                        Verificar API
+                    </a>
                 </div>
             </div>
         </div>
@@ -140,7 +184,8 @@
             <div class="footer-content">
                 <div class="footer-info">
                     <p><strong>vagas-rb.tech</strong> - Desenvolvido por <strong>Zumbaiero</strong></p>
-                    <p>Dados fornecidos pela SmartRecruiters API • Atualizado em tempo real</p>
+                    <p>Dados fornecidos pela SmartRecruiters API • Hospedado na Vercel</p>
+                    <p><small>Atualizado em: 18/06/2025 às 23:45 UTC</small></p>
                 </div>
                 <div class="footer-links">
                     <a href="https://careers.smartrecruiters.com/BoschGroup/brazil" target="_blank" class="footer-link">
@@ -149,11 +194,14 @@
                     <a href="/api/health" target="_blank" class="footer-link">
                         📊 Status da API
                     </a>
+                    <a href="https://github.com/Zumbaiero" target="_blank" class="footer-link">
+                        👨‍💻 GitHub
+                    </a>
                 </div>
             </div>
         </footer>
     </div>
 
-    <script src="script.js"></script>
+    <script src="/script.js"></script>
 </body>
 </html>

@@ -88,6 +88,13 @@ body {
     margin-bottom: 25px;
 }
 
+.domain-info {
+    color: var(--gray-color);
+    font-size: 0.9em;
+    display: block;
+    margin-bottom: 20px;
+}
+
 .stats {
     display: flex;
     justify-content: center;
@@ -182,6 +189,21 @@ body {
     opacity: 1;
 }
 
+/* Filtros Rápidos */
+.quick-filters, .city-filters {
+    margin-bottom: 20px;
+}
+
+.filters-title {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--dark-color);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .filter-tabs {
     display: flex;
     justify-content: center;
@@ -214,6 +236,22 @@ body {
     border-color: var(--primary-color);
 }
 
+.filter-tab::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: var(--primary-color);
+    transition: var(--transition);
+    transform: translateX(-50%);
+}
+
+.filter-tab.active::after {
+    width: 80%;
+}
+
 .tab-count {
     background: rgba(0,0,0,0.1);
     padding: 2px 8px;
@@ -223,6 +261,51 @@ body {
 }
 
 .filter-tab.active .tab-count {
+    background: rgba(255,255,255,0.2);
+}
+
+/* Filtros por Cidade */
+.city-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.city-tab {
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.9em;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.city-tab:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+}
+
+.city-tab.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.city-tab .tab-count {
+    background: rgba(0,0,0,0.1);
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 0.8em;
+    font-weight: 600;
+}
+
+.city-tab.active .tab-count {
     background: rgba(255,255,255,0.2);
 }
 
@@ -284,6 +367,15 @@ body {
 .btn-outline:hover {
     background: var(--primary-color);
     color: white;
+}
+
+.btn-warning {
+    background: var(--warning-color);
+    color: white;
+}
+
+.btn-warning:hover {
+    background: #e67e22;
 }
 
 /* Loading */
@@ -564,6 +656,12 @@ body {
     margin-bottom: 20px;
 }
 
+.error-debug {
+    margin: 20px 0;
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
 .error-actions {
     display: flex;
     justify-content: center;
@@ -664,6 +762,34 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* Animação para contadores */
+.tab-count {
+    animation: pulse 0.3s ease when updating;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* Melhorias de acessibilidade */
+.filter-tab:focus,
+.city-tab:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Status de filtros ativos */
+.active-filters-indicator {
+    background: var(--success-color);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    margin-left: 10px;
+}
+
 /* Responsivo */
 @media (max-width: 768px) {
     .container {
@@ -692,6 +818,21 @@ body {
         justify-content: flex-start;
         overflow-x: auto;
         padding-bottom: 10px;
+    }
+    
+    .city-tabs {
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding-bottom: 10px;
+    }
+    
+    .city-tab {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    
+    .filters-title {
+        font-size: 1em;
     }
     
     .vagas-grid {
