@@ -25,14 +25,15 @@ app.use((req, res, next) => {
   next();
 });
 
-// Redirecionamento de domínio customizado
-// Somente para rotas NÃO-API, mantendo /api intactas
+// Redirect apenas de vagas-rb.tech (sem www) para www.vagas-rb.tech
+// Não redireciona se já for www nem altera rotas /api
 app.use((req, res, next) => {
   const host = req.get('host');
-  if (isProduction
-    && (host === 'vagas-rb.tech' || host === 'www.vagas-rb.tech')
-    && !req.path.startsWith('/api/')) {
-    // Redireciona tudo para o host "www.vagas-rb.tech"
+  if (
+    isProduction &&
+    host === 'vagas-rb.tech' &&
+    !req.path.startsWith('/api/')
+  ) {
     return res.redirect(301, `https://www.vagas-rb.tech${req.originalUrl}`);
   }
   next();
@@ -51,7 +52,10 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', origin);
   }
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header(
+    'Access-Control-Allow-Headers',
+    'Origin, X-Requested-With, Content-Type, Accept'
+  );
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
@@ -63,11 +67,13 @@ app.use(express.json({ limit: '10mb' }));
 
 // Servir estáticos (public) e cache em produção
 if (isProduction) {
-  app.use(express.static(path.join(__dirname, 'public'), {
-    maxAge: '1d',
-    etag: true,
-    lastModified: true
-  }));
+  app.use(
+    express.static(path.join(__dirname, 'public'), {
+      maxAge: '1d',
+      etag: true,
+      lastModified: true
+    })
+  );
 } else {
   app.use(express.static(path.join(__dirname, 'public')));
 }
@@ -161,7 +167,9 @@ app.get('/api/vagas', async (req, res) => {
       })
       .filter(v => v.titulo !== 'Título não disponível');
 
-    console.log(`✅ Processadas ${vagas.length} vagas em ${Date.now() - startTime}ms`);
+    console.log(
+      `✅ Processadas ${vagas.length} vagas em ${Date.now() - startTime}ms`
+    );
     res.json({
       success: true,
       total: vagas.length,
@@ -202,7 +210,7 @@ Sitemap: https://www.vagas-rb.tech/sitemap.xml`;
   res.type('text/plain').send(robots);
 });
 
-// Spa catch-all (serve index.html ou retorna 404 para API não encontradas)
+// SPA catch-all (serve index.html ou retorna 404 para API não encontradas)
 app.use((req, res) => {
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({
@@ -213,7 +221,6 @@ app.use((req, res) => {
       timestamp: new Date().toISOString()
     });
   }
-  // serve SPA
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
