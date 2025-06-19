@@ -3,10 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vagas Bosch Brasil - vagas-rb.tech</title>
-    <meta name="description" content="Encontre oportunidades de trabalho na Bosch Group no Brasil">
+    
+    <!-- SEO Meta Tags -->
+    <title>Vagas Bosch Brasil 2025 | Encontre sua Oportunidade na Bosch Group - www.vagas-rb.tech</title>
+    <meta name="description" content="Descubra as melhores vagas de emprego na Bosch Group no Brasil. Oportunidades em Campinas, São Paulo, Curitiba. Filtros por nível: Júnior, Estágio, SAP, Engenharia. Atualizado diariamente.">
+    <meta name="keywords" content="vagas bosch, emprego bosch, carreiras bosch brasil, vagas junior bosch, estágio bosch, vagas campinas, vagas são paulo, vagas sap, engenharia bosch">
+    <meta name="author" content="Zumbaiero">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="pt-BR">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.vagas-rb.tech/">
+    <meta property="og:title" content="Vagas Bosch Brasil 2025 | www.vagas-rb.tech">
+    <meta property="og:description" content="Encontre as melhores oportunidades de carreira na Bosch Group no Brasil. Filtros inteligentes por cidade e nível de experiência.">
+    <meta property="og:image" content="https://www.vagas-rb.tech/og-image.png">
+    <meta property="og:site_name" content="Vagas RB Tech">
+    <meta property="og:locale" content="pt_BR">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://www.vagas-rb.tech/">
+    <meta property="twitter:title" content="Vagas Bosch Brasil 2025">
+    <meta property="twitter:description" content="Encontre sua próxima oportunidade na Bosch Group">
+    <meta property="twitter:image" content="https://www.vagas-rb.tech/og-image.png">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://www.vagas-rb.tech/">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+    
+    <!-- CSS -->
     <link rel="stylesheet" href="/style.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+    
+    <!-- Preconnect para performance -->
+    <link rel="preconnect" href="https://api.smartrecruiters.com">
+    <link rel="preconnect" href="https://careers.smartrecruiters.com">
+    
+    <!-- JSON-LD Schema -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Vagas Bosch Brasil",
+        "url": "https://www.vagas-rb.tech",
+        "description": "Portal de vagas de emprego da Bosch Group no Brasil",
+        "author": {
+            "@type": "Person",
+            "name": "Zumbaiero"
+        },
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://www.vagas-rb.tech/?search={search_term_string}",
+            "query-input": "required name=search_term_string"
+        }
+    }
+    </script>
 </head>
 <body>
     <div class="container">
@@ -18,7 +72,7 @@
                     Vagas Bosch Brasil
                 </h1>
                 <p class="subtitle">Encontre sua próxima oportunidade na Bosch Group</p>
-                <small class="domain-info">vagas-rb.tech</small>
+                <small class="domain-info">www.vagas-rb.tech</small>
                 <div class="stats">
                     <div class="stat-item">
                         <span class="stat-number" id="totalVagasGeral">-</span>
@@ -36,77 +90,77 @@
         <section class="controls">
             <div class="search-section">
                 <div class="search-bar">
-                    <input type="text" id="searchInput" placeholder="🔍 Buscar por título, departamento ou local..." />
-                    <button id="clearSearch" class="clear-btn" title="Limpar busca">✕</button>
+                    <input type="text" id="searchInput" placeholder="🔍 Buscar por título, departamento ou local..." aria-label="Buscar vagas" />
+                    <button id="clearSearch" class="clear-btn" title="Limpar busca" aria-label="Limpar busca">✕</button>
                 </div>
                 
-                <!-- Filtros Rápidos - NOVOS FILTROS JUNIOR E ESTÁGIO -->
+                <!-- Filtros Rápidos -->
                 <div class="quick-filters">
                     <h3 class="filters-title">🚀 Filtros Rápidos</h3>
-                    <div class="filter-tabs">
-                        <button class="filter-tab active" data-filter="all">
+                    <div class="filter-tabs" role="tablist">
+                        <button class="filter-tab active" data-filter="all" role="tab" aria-selected="true">
                             <span class="tab-icon">📋</span>
                             Todas <span class="tab-count" id="countAll">0</span>
                         </button>
-                        <button class="filter-tab" data-filter="junior">
+                        <button class="filter-tab" data-filter="junior" role="tab">
                             <span class="tab-icon">🌟</span>
                             Júnior <span class="tab-count" id="countJunior">0</span>
                         </button>
-                        <button class="filter-tab" data-filter="estagio">
+                        <button class="filter-tab" data-filter="estagio" role="tab">
                             <span class="tab-icon">🎓</span>
                             Estágio <span class="tab-count" id="countEstagio">0</span>
                         </button>
-                        <button class="filter-tab" data-filter="campinas">
+                        <button class="filter-tab" data-filter="campinas" role="tab">
                             <span class="tab-icon">📍</span>
                             Campinas <span class="tab-count" id="countCampinas">0</span>
                         </button>
-                        <button class="filter-tab" data-filter="sap">
+                        <button class="filter-tab" data-filter="sap" role="tab">
                             <span class="tab-icon">💼</span>
                             SAP <span class="tab-count" id="countSap">0</span>
                         </button>
-                        <button class="filter-tab" data-filter="engineering">
+                        <button class="filter-tab" data-filter="engineering" role="tab">
                             <span class="tab-icon">⚙️</span>
                             Engenharia <span class="tab-count" id="countEngineering">0</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- Filtros por Cidade - NOVO -->
+                <!-- Filtros por Cidade -->
                 <div class="city-filters">
                     <h3 class="filters-title">🌍 Filtrar por Cidade</h3>
-                    <div class="city-tabs">
-                        <button class="city-tab active" data-city="all">
+                    <div class="city-tabs" role="tablist">
+                        <button class="city-tab active" data-city="all" role="tab" aria-selected="true">
                             Todas as Cidades <span class="tab-count" id="countAllCities">0</span>
                         </button>
-                        <button class="city-tab" data-city="campinas">
+                        <button class="city-tab" data-city="campinas" role="tab">
                             Campinas <span class="tab-count" id="countCidadeCampinas">0</span>
                         </button>
-                        <button class="city-tab" data-city="sao paulo">
+                        <button class="city-tab" data-city="sao paulo" role="tab">
                             São Paulo <span class="tab-count" id="countCidadeSaoPaulo">0</span>
                         </button>
-                        <button class="city-tab" data-city="curitiba">
+                        <button class="city-tab" data-city="curitiba" role="tab">
                             Curitiba <span class="tab-count" id="countCidadeCuritiba">0</span>
                         </button>
-                        <button class="city-tab" data-city="porto alegre">
+                        <button class="city-tab" data-city="porto alegre" role="tab">
                             Porto Alegre <span class="tab-count" id="countCidadePortoAlegre">0</span>
                         </button>
                     </div>
                 </div>
 
                 <div class="action-buttons">
-                    <button id="loadVagas" class="btn btn-primary">
+                    <button id="loadVagas" class="btn btn-primary" aria-label="Carregar vagas">
                         <span class="btn-icon">🚀</span>
                         <span class="btn-text">Carregar Vagas</span>
                     </button>
-                    <button id="refreshVagas" class="btn btn-secondary hidden">
+                    <button id="refreshVagas" class="btn btn-secondary hidden" aria-label="Atualizar vagas">
                         <span class="btn-icon">🔄</span>
                         <span class="btn-text">Atualizar</span>
                     </button>
-                    <button id="sortToggle" class="btn btn-outline hidden">
+                    <button id="sortToggle" class="btn btn-outline hidden" aria-label="Alterar ordenação">
                         <span class="btn-icon">📊</span>
                         <span class="btn-text">A-Z</span>
                     </button>
-                    <button id="clearAllFilters" class="btn btn-warning hidden">
+                    <button id="clearAllFilters" class="btn btn-warning hidden" aria-label="Limpar todos os filtros">
                         <span class="btn-icon">🗑️</span>
                         <span class="btn-text">Limpar Filtros</span>
                     </button>
@@ -115,15 +169,15 @@
         </section>
 
         <!-- Loading -->
-        <div id="loading" class="loading hidden">
+        <div id="loading" class="loading hidden" role="status" aria-live="polite">
             <div class="loading-content">
-                <div class="loading-spinner">
+                <div class="loading-spinner" aria-hidden="true">
                     <div class="spinner-ring"></div>
                     <div class="spinner-ring"></div>
                     <div class="spinner-ring"></div>
                 </div>
                 <h3>Carregando vagas...</h3>
-                <p>Conectando com a API da Bosch em vagas-rb.tech</p>
+                <p>Conectando com a API da Bosch em www.vagas-rb.tech</p>
                 <div class="loading-progress">
                     <div class="progress-bar"></div>
                 </div>
@@ -143,7 +197,7 @@
                 </div>
             </div>
             
-            <div id="vagasList" class="vagas-grid"></div>
+            <div id="vagasList" class="vagas-grid" role="main"></div>
             
             <div class="load-more-section hidden">
                 <button id="loadMore" class="btn btn-outline">
@@ -153,13 +207,13 @@
         </main>
 
         <!-- Erro -->
-        <div id="errorSection" class="error-section hidden">
+        <div id="errorSection" class="error-section hidden" role="alert">
             <div class="error-content">
-                <div class="error-icon">⚠️</div>
+                <div class="error-icon" aria-hidden="true">⚠️</div>
                 <h3>Ops! Algo deu errado</h3>
                 <p id="errorMessage">Não foi possível carregar as vagas</p>
                 <div class="error-debug">
-                    <p><strong>Site:</strong> vagas-rb.tech</p>
+                    <p><strong>Site:</strong> www.vagas-rb.tech</p>
                     <p><strong>API:</strong> /api/vagas</p>
                     <p><strong>Hora:</strong> <span id="errorTime">-</span></p>
                 </div>
@@ -177,24 +231,24 @@
         </div>
 
         <!-- Toast Notifications -->
-        <div id="toastContainer" class="toast-container"></div>
+        <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
         <!-- Footer -->
         <footer class="footer">
             <div class="footer-content">
                 <div class="footer-info">
-                    <p><strong>vagas-rb.tech</strong> - Desenvolvido por <strong>Zumbaiero</strong></p>
+                    <p><strong>www.vagas-rb.tech</strong> - Desenvolvido por <strong>Zumbaiero</strong></p>
                     <p>Dados fornecidos pela SmartRecruiters API • Hospedado na Vercel</p>
-                    <p><small>Atualizado em: 18/06/2025 às 23:45 UTC</small></p>
+                    <p><small>Última atualização: 19/06/2025 às 00:25 UTC</small></p>
                 </div>
                 <div class="footer-links">
-                    <a href="https://careers.smartrecruiters.com/BoschGroup/brazil" target="_blank" class="footer-link">
+                    <a href="https://careers.smartrecruiters.com/BoschGroup/brazil" target="_blank" rel="noopener" class="footer-link">
                         🏢 Bosch Carreiras
                     </a>
-                    <a href="/api/health" target="_blank" class="footer-link">
+                    <a href="/api/health" target="_blank" rel="noopener" class="footer-link">
                         📊 Status da API
                     </a>
-                    <a href="https://github.com/Zumbaiero" target="_blank" class="footer-link">
+                    <a href="https://github.com/Zumbaiero" target="_blank" rel="noopener" class="footer-link">
                         👨‍💻 GitHub
                     </a>
                 </div>
@@ -202,6 +256,15 @@
         </footer>
     </div>
 
+    <!-- JavaScript -->
     <script src="/script.js"></script>
+    
+    <!-- Analytics placeholder -->
+    <script>
+        console.log('🌍 www.vagas-rb.tech carregado!');
+        console.log('📊 Versão: 2.0.0');
+        console.log('👤 Desenvolvido por: Zumbaiero');
+        console.log('📅 Deploy: 19/06/2025 - 00:25 UTC');
+    </script>
 </body>
 </html>
