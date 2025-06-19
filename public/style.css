@@ -70,6 +70,7 @@ body {
     margin-bottom: 10px;
     background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
     -webkit-background-clip: text;
+    background-clip: text;  /* ← Nova linha */
     -webkit-text-fill-color: transparent;
     display: flex;
     align-items: center;
