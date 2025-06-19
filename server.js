@@ -97,7 +97,7 @@ app.get('/api/health', (req, res) => {
   res.json(healthData);
 });
 
-// Fetch and normalize job postings
+// API de vagas
 app.get('/api/vagas', async (req, res) => {
   const start = Date.now();
   try {
@@ -121,17 +121,28 @@ app.get('/api/vagas', async (req, res) => {
     const vagas = postings
       .filter(p => p && p.id && p.name)
       .map(p => {
-        // Determine URLs: try jobAdUrl first, then applyUrl, then any URI field
-        const urlView = normalize(p.jobAdUrl) ||
-                        normalize(p.applyUrl) ||
-                        normalize(p.uri) ||
-                        '#';
-        const urlApply = normalize(p.applyUrl) ||
-                         normalize(p.jobAdUrl) ||
-                         normalize(p.uri) ||
-                         '#';
+        // Fallback URL: convert API URI to candidate-facing page
+        const defaultView = p.uri
+          ? p.uri
+              .replace(
+                'api.smartrecruiters.com/v1/companies',
+                'careers.smartrecruiters.com'
+              )
+              .replace('/postings/', '/job/')
+          : null;
 
-        // Location
+        const urlView =
+          normalize(p.jobAdUrl) ||
+          normalize(p.applyUrl) ||
+          defaultView ||
+          '#';
+        const urlApply =
+          normalize(p.applyUrl) ||
+          normalize(p.jobAdUrl) ||
+          defaultView ||
+          '#';
+
+        // Local
         let local = 'Brasil';
         if (p.location) {
           const city = normalize(p.location.city);
@@ -141,10 +152,10 @@ app.get('/api/vagas', async (req, res) => {
           else if (country) local = country;
         }
 
-        // Department
+        // Departamento
         const departamento = normalize(p.department?.label, 'Não informado');
 
-        // Title & level
+        // Título e nível
         const titulo = normalize(p.name, 'Título não disponível');
         const low = titulo.toLowerCase();
         let nivel = 'Não especificado';
@@ -211,7 +222,7 @@ Sitemap: https://www.vagas-rb.tech/sitemap.xml`;
   res.type('text/plain').send(robots);
 });
 
-// SPA catch-all (serve index.html or 404 API)
+// SPA catch-all
 app.use((req, res) => {
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({
