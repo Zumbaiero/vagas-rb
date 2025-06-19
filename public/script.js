@@ -1,402 +1,692 @@
 class VagasBoschApp {
-  constructor() {
-    this.API_BASE = this.detectarApiBase();
-    this.VERSION = '2.0.0';
-    this.DOMAIN = window.location.hostname;
-
-    this.state = {
-      vagas: [],
-      vagasFiltradas: [],
-      filtroAtivo: 'all',
-      cidadeAtiva: 'all',
-      termoBusca: '',
-      ordenacao: 'titulo',
-      ordenacaoAsc: true,
-      loading: false,
-      vagasExibidas: 20,
-      ultimaAtualizacao: null
-    };
-
-    this.elementos = this.inicializarElementos();
-    this.init();
-  }
-
-  detectarApiBase() {
-    const hostname = window.location.hostname;
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return 'http://localhost:3000/api';
+    constructor() {
+        this.API_BASE = this.detectarApiBase();
+        this.VERSION = '2.0.0';
+        this.DOMAIN = window.location.hostname;
+        
+        console.log(`🔗 API Base detectada: ${this.API_BASE}`);
+        console.log(`🌍 Domínio: ${this.DOMAIN}`);
+        console.log(`📊 Versão: ${this.VERSION}`);
+        
+        this.state = {
+            vagas: [],
+            vagasFiltradas: [],
+            filtroAtivo: 'all',
+            cidadeAtiva: 'all',
+            termoBusca: '',
+            ordenacao: 'titulo',
+            ordenacaoAsc: true,
+            loading: false,
+            vagasExibidas: 20,
+            ultimaAtualizacao: null
+        };
+        
+        this.elementos = this.inicializarElementos();
+        this.init();
     }
-    return '/api';
-  }
-
-  inicializarElementos() {
-    const elems = {};
-    const ids = [
-      'totalVagasGeral','ultimaAtualizacao',
-      'searchInput','clearSearch',
-      'loadVagas','refreshVagas','sortToggle','clearAllFilters',
-      'countAll','countJunior','countEstagio','countCampinas','countSap','countEngineering',
-      'countAllCities','countCidadeCampinas','countCidadeSaoPaulo','countCidadeCuritiba','countCidadePortoAlegre',
-      'loading','resultados','errorSection',
-      'resultCount','filterStatus','vagasList','loadMore',
-      'errorMessage','errorTime','retryBtn','toastContainer'
-    ];
-    ids.forEach(id => elems[id] = document.getElementById(id));
-    elems.filterTabs = document.querySelectorAll('.filter-tab');
-    elems.cityTabs   = document.querySelectorAll('.city-tab');
-    return elems;
-  }
-
-  init() {
-    console.log(`🚀 Inicializando VagasBoschApp em ${this.DOMAIN}`);
-    this.configurarEventListeners();
-    this.testarConexaoAPI();
-    this.carregarVagas();
-    this.atualizarHorario();
-    setInterval(() => this.atualizarHorario(), 60000);
-  }
-
-  async testarConexaoAPI() {
-    try {
-      console.log('🔍 Testando conexão com a API...');
-      const resp = await fetch(`${this.API_BASE}/health`);
-      if (resp.ok) {
-        const data = await resp.json();
-        console.log('✅ API ok:', data);
-        this.mostrarToast(`✅ Conectado com ${this.DOMAIN}`, 'success');
-      } else {
-        console.warn('⚠️ API respondeu com erro', resp.status);
-        this.mostrarToast('⚠️ API com problemas', 'warning');
-      }
-    } catch (err) {
-      console.error('❌ Erro de conexão', err);
-      this.mostrarToast('❌ Erro de conexão', 'error');
+    
+    detectarApiBase() {
+        const hostname = window.location.hostname;
+        console.log('🌍 Detectando ambiente:', { hostname });
+        
+        // Em desenvolvimento local
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            return 'http://localhost:3000/api';
+        }
+        
+        // Em qualquer deploy (vagas-rb.tech, www.vagas-rb.tech, vercel.app, etc.)
+        return '/api';
     }
-  }
-
-  configurarEventListeners() {
-    const e = this.elementos;
-    if (e.loadVagas)       e.loadVagas.addEventListener('click', () => this.carregarVagas());
-    if (e.refreshVagas)    e.refreshVagas.addEventListener('click', () => this.carregarVagas(true));
-    if (e.retryBtn)        e.retryBtn.addEventListener('click', () => this.carregarVagas());
-    if (e.clearAllFilters) e.clearAllFilters.addEventListener('click', () => this.limparTodosFiltros());
-    if (e.searchInput) {
-      e.searchInput.addEventListener('input', ev => {
-        this.state.termoBusca = ev.target.value;
-        this.debounce(() => this.aplicarFiltros(), 300)();
-      });
+    
+    inicializarElementos() {
+        const elementos = {};
+        
+        const ids = [
+            'totalVagasGeral', 'ultimaAtualizacao', 'searchInput', 'clearSearch',
+            'loadVagas', 'refreshVagas', 'sortToggle', 'clearAllFilters',
+            'countAll', 'countJunior', 'countEstagio', 'countCampinas', 'countSap', 'countEngineering',
+            'countAllCities', 'countCidadeCampinas', 'countCidadeSaoPaulo', 'countCidadeCuritiba', 'countCidadePortoAlegre',
+            'loading', 'resultados', 'errorSection', 'resultCount', 'filterStatus', 'vagasList', 'loadMore',
+            'errorMessage', 'errorTime', 'retryBtn', 'toastContainer'
+        ];
+        
+        ids.forEach(id => {
+            elementos[id] = document.getElementById(id);
+        });
+        
+        elementos.filterTabs = document.querySelectorAll('.filter-tab');
+        elementos.cityTabs = document.querySelectorAll('.city-tab');
+        
+        return elementos;
     }
-    if (e.clearSearch) {
-      e.clearSearch.addEventListener('click', () => {
-        e.searchInput.value = '';
+    
+    init() {
+        console.log(`🚀 Inicializando Vagas Bosch App para ${this.DOMAIN}`);
+        this.configurarEventListeners();
+        this.testarConexaoAPI();
+        this.carregarVagas();
+        this.atualizarHorario();
+        setInterval(() => this.atualizarHorario(), 60000);
+    }
+    
+    async testarConexaoAPI() {
+        try {
+            console.log('🔍 Testando conexão com API...');
+            const response = await fetch(`${this.API_BASE}/health`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('✅ API conectada:', data);
+                this.mostrarToast(`✅ Conectado com ${this.DOMAIN}`, 'success');
+            } else {
+                console.warn('⚠️ API respondeu com erro:', response.status);
+                this.mostrarToast('⚠️ API com problemas', 'warning');
+            }
+        } catch (error) {
+            console.error('❌ Erro na conexão:', error);
+            this.mostrarToast('❌ Erro de conexão', 'error');
+        }
+    }
+    
+    configurarEventListeners() {
+        if (this.elementos.loadVagas) {
+            this.elementos.loadVagas.addEventListener('click', () => this.carregarVagas());
+        }
+        
+        if (this.elementos.refreshVagas) {
+            this.elementos.refreshVagas.addEventListener('click', () => this.carregarVagas(true));
+        }
+        
+        if (this.elementos.retryBtn) {
+            this.elementos.retryBtn.addEventListener('click', () => this.carregarVagas());
+        }
+        
+        if (this.elementos.clearAllFilters) {
+            this.elementos.clearAllFilters.addEventListener('click', () => this.limparTodosFiltros());
+        }
+        
+        if (this.elementos.searchInput) {
+            this.elementos.searchInput.addEventListener('input', (e) => {
+                this.state.termoBusca = e.target.value || '';
+                this.debounce(() => this.aplicarFiltros(), 300)();
+            });
+        }
+        
+        if (this.elementos.clearSearch) {
+            this.elementos.clearSearch.addEventListener('click', () => {
+                if (this.elementos.searchInput) {
+                    this.elementos.searchInput.value = '';
+                    this.state.termoBusca = '';
+                    this.aplicarFiltros();
+                }
+            });
+        }
+        
+        this.elementos.filterTabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const filtro = e.currentTarget.dataset.filter;
+                this.definirFiltroAtivo(filtro);
+            });
+        });
+        
+        this.elementos.cityTabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const cidade = e.currentTarget.dataset.city;
+                this.definirCidadeAtiva(cidade);
+            });
+        });
+        
+        if (this.elementos.sortToggle) {
+            this.elementos.sortToggle.addEventListener('click', () => {
+                this.state.ordenacaoAsc = !this.state.ordenacaoAsc;
+                const btnText = this.elementos.sortToggle.querySelector('.btn-text');
+                if (btnText) {
+                    btnText.textContent = this.state.ordenacaoAsc ? 'A-Z' : 'Z-A';
+                }
+                this.aplicarFiltros();
+            });
+        }
+        
+        if (this.elementos.loadMore) {
+            this.elementos.loadMore.addEventListener('click', () => {
+                this.state.vagasExibidas += 20;
+                this.renderizarVagas();
+            });
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                if (this.elementos.searchInput) {
+                    this.elementos.searchInput.focus();
+                }
+            }
+            
+            if (e.key === 'Escape' && this.elementos.searchInput === document.activeElement) {
+                if (this.elementos.searchInput) {
+                    this.elementos.searchInput.blur();
+                    this.elementos.searchInput.value = '';
+                    this.state.termoBusca = '';
+                    this.aplicarFiltros();
+                }
+            }
+        });
+    }
+    
+    async carregarVagas(isRefresh = false) {
+        if (this.state.loading) return;
+        
+        this.state.loading = true;
+        this.mostrarLoading();
+        
+        if (isRefresh) {
+            this.mostrarToast(`🔄 Atualizando vagas de ${this.DOMAIN}...`, 'info');
+        }
+        
+        try {
+            console.log('🔍 Carregando vagas da API...');
+            
+            const response = await fetch(`${this.API_BASE}/vagas`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const dados = await response.json();
+            
+            if (dados.success && Array.isArray(dados.vagas)) {
+                this.state.vagas = dados.vagas.filter(vaga => {
+                    return vaga &&
+                           vaga.titulo &&
+                           vaga.local &&
+                           vaga.departamento &&
+                           vaga.titulo !== 'Título não disponível';
+                });
+                
+                this.state.ultimaAtualizacao = new Date();
+                
+                this.atualizarEstatisticas();
+                this.aplicarFiltros();
+                this.mostrarResultados();
+                
+                const mensagem = isRefresh 
+                    ? `✅ ${this.state.vagas.length} vagas atualizadas!` 
+                    : `🎉 ${this.state.vagas.length} vagas carregadas!`;
+                    
+                this.mostrarToast(mensagem, 'success');
+                
+                console.log(`✅ ${this.state.vagas.length} vagas carregadas com sucesso`);
+                
+                ['refreshVagas', 'sortToggle', 'clearAllFilters'].forEach(id => {
+                    if (this.elementos[id]) {
+                        this.elementos[id].classList.remove('hidden');
+                    }
+                });
+                
+            } else {
+                throw new Error(dados.erro || 'Formato de dados inválido');
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro ao carregar vagas:', error);
+            
+            let mensagemErro = error.message;
+            
+            if (mensagemErro.includes('Failed to fetch')) {
+                mensagemErro = `Erro de conexão com ${this.DOMAIN}. Verifique sua internet.`;
+            } else if (mensagemErro.includes('404')) {
+                mensagemErro = `API não encontrada em ${this.DOMAIN}. Tente novamente.`;
+            } else if (mensagemErro.includes('500')) {
+                mensagemErro = `Erro interno da API ${this.DOMAIN}. Tente novamente em alguns minutos.`;
+            }
+            
+            this.mostrarErro(mensagemErro);
+            this.mostrarToast('❌ Erro ao carregar vagas', 'error');
+            
+            if (this.elementos.errorTime) {
+                this.elementos.errorTime.textContent = new Date().toLocaleString('pt-BR');
+            }
+            
+        } finally {
+            this.state.loading = false;
+            this.ocultarLoading();
+        }
+    }
+    
+    definirFiltroAtivo(filtro) {
+        this.state.filtroAtivo = filtro;
+        this.state.vagasExibidas = 20;
+        
+        this.elementos.filterTabs.forEach(tab => {
+            const isActive = tab.dataset.filter === filtro;
+            tab.classList.toggle('active', isActive);
+        });
+        
+        this.aplicarFiltros();
+    }
+    
+    definirCidadeAtiva(cidade) {
+        this.state.cidadeAtiva = cidade;
+        this.state.vagasExibidas = 20;
+        
+        this.elementos.cityTabs.forEach(tab => {
+            const isActive = tab.dataset.city === cidade;
+            tab.classList.toggle('active', isActive);
+        });
+        
+        this.aplicarFiltros();
+    }
+    
+    limparTodosFiltros() {
+        this.state.filtroAtivo = 'all';
+        this.state.cidadeAtiva = 'all';
         this.state.termoBusca = '';
+        this.state.vagasExibidas = 20;
+        
+        if (this.elementos.searchInput) {
+            this.elementos.searchInput.value = '';
+        }
+        
+        this.elementos.filterTabs.forEach(tab => {
+            const isActive = tab.dataset.filter === 'all';
+            tab.classList.toggle('active', isActive);
+        });
+        
+        this.elementos.cityTabs.forEach(tab => {
+            const isActive = tab.dataset.city === 'all';
+            tab.classList.toggle('active', isActive);
+        });
+        
         this.aplicarFiltros();
-      });
+        this.mostrarToast('🗑️ Filtros limpos', 'info');
     }
-    e.filterTabs.forEach(tab => {
-      tab.addEventListener('click', ev => this.definirFiltroAtivo(ev.currentTarget.dataset.filter));
-    });
-    e.cityTabs.forEach(tab => {
-      tab.addEventListener('click', ev => this.definirCidadeAtiva(ev.currentTarget.dataset.city));
-    });
-    if (e.sortToggle) {
-      e.sortToggle.addEventListener('click', () => {
-        this.state.ordenacaoAsc = !this.state.ordenacaoAsc;
-        const btnText = e.sortToggle.querySelector('.btn-text');
-        if (btnText) btnText.textContent = this.state.ordenacaoAsc ? 'A-Z' : 'Z-A';
-        this.aplicarFiltros();
-      });
-    }
-    if (e.loadMore) {
-      e.loadMore.addEventListener('click', () => {
-        this.state.vagasExibidas += 20;
+    
+    aplicarFiltros() {
+        let vagasFiltradas = [...this.state.vagas];
+        
+        vagasFiltradas = vagasFiltradas.filter(vaga => {
+            return vaga && 
+                   typeof vaga.titulo === 'string' && 
+                   typeof vaga.local === 'string' && 
+                   typeof vaga.departamento === 'string';
+        });
+        
+        switch (this.state.filtroAtivo) {
+            case 'junior':
+                vagasFiltradas = vagasFiltradas.filter(vaga => 
+                    vaga.titulo.toLowerCase().includes('junior') || 
+                    vaga.titulo.toLowerCase().includes('júnior') ||
+                    vaga.titulo.toLowerCase().includes('jr') ||
+                    (vaga.nivel && vaga.nivel.toLowerCase() === 'júnior'));
+                break;
+            case 'estagio':
+                vagasFiltradas = vagasFiltradas.filter(vaga => 
+                    vaga.titulo.toLowerCase().includes('estágio') ||
+                    vaga.titulo.toLowerCase().includes('estagio') ||
+                    vaga.titulo.toLowerCase().includes('trainee') ||
+                    vaga.titulo.toLowerCase().includes('intern') ||
+                    (vaga.nivel &&vaga.nivel.toLowerCase() === 'estágio'));
+                break;
+            case 'campinas':
+                vagasFiltradas = vagasFiltradas.filter(vaga => 
+                    vaga.local.toLowerCase().includes('campinas'));
+                break;
+            case 'sap':
+                vagasFiltradas = vagasFiltradas.filter(vaga => 
+                    vaga.titulo.toLowerCase().includes('sap') || 
+                    vaga.departamento.toLowerCase().includes('sap'));
+                break;
+            case 'engineering':
+                vagasFiltradas = vagasFiltradas.filter(vaga => 
+                    vaga.departamento.toLowerCase().includes('engineering') ||
+                    vaga.departamento.toLowerCase().includes('engenharia') ||
+                    vaga.titulo.toLowerCase().includes('engineer') ||
+                    vaga.titulo.toLowerCase().includes('engenheiro'));
+                break;
+        }
+        
+        if (this.state.cidadeAtiva !== 'all') {
+            vagasFiltradas = vagasFiltradas.filter(vaga => 
+                vaga.local.toLowerCase().includes(this.state.cidadeAtiva.toLowerCase()));
+        }
+        
+        if (this.state.termoBusca.trim()) {
+            const termo =this.state.termoBusca.toLowerCase().trim();
+            vagasFiltradas = vagasFiltradas.filter(vaga =>
+                vaga.titulo.toLowerCase().includes(termo) ||
+                vaga.departamento.toLowerCase().includes(termo) ||
+                vaga.local.toLowerCase().includes(termo) ||
+                (vaga.nivel && vaga.nivel.toLowerCase().includes(termo))
+            );
+        }
+        
+        vagasFiltradas.sort((a, b) => {
+            const comparison = a.titulo.localeCompare(b.titulo,'pt-BR');
+            return this.state.ordenacaoAsc ? comparison : -comparison;
+        });
+        
+        this.state.vagasFiltradas = vagasFiltradas;
+        this.atualizarContadores();
         this.renderizarVagas();
-      });
+        this.atualizarStatusFiltro();
     }
-    document.addEventListener('keydown', ev => {
-      if ((ev.ctrlKey || ev.metaKey) && ev.key === 'k') {
-        ev.preventDefault();
-        if (e.searchInput) e.searchInput.focus();
-      }
-      if (ev.key === 'Escape' && document.activeElement === e.searchInput) {
-        e.searchInput.blur();
-        e.searchInput.value = '';
-        this.state.termoBusca = '';
-        this.aplicarFiltros();
-      }
-    });
-  }
-
-  async carregarVagas(isRefresh = false) {
-    if (this.state.loading) return;
-    this.state.loading = true;
-    this.mostrarLoading();
-    if (isRefresh) this.mostrarToast('🔄 Atualizando vagas...', 'info');
-
-    try {
-      console.log('🔍 Carregando vagas...');
-      const resp = await fetch(`${this.API_BASE}/vagas`);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const dados = await resp.json();
-      if (dados.success && Array.isArray(dados.vagas)) {
-        this.state.vagas = dados.vagas;
-        this.state.ultimaAtualizacao = new Date();
-        this.atualizarEstatisticas();
-        this.aplicarFiltros();
-        this.mostrarResultados();
-        this.mostrarToast(`🎉 ${this.state.vagas.length} vagas carregadas!`, 'success');
-      } else {
-        throw new Error(dados.erro || 'Formato de dados inválido');
-      }
-    } catch (err) {
-      console.error('❌ Erro ao carregar vagas:', err);
-      this.mostrarErro(err.message);
-      this.mostrarToast('❌ Erro ao carregar vagas', 'error');
-    } finally {
-      this.state.loading = false;
-      this.ocultarLoading();
+    
+    atualizarContadores() {
+        const contarVagas = filtroFunc => this.state.vagas.filter(vaga => {
+            if (!vaga||!vaga.titulo||!vaga.local||!vaga.departamento) return false;
+            return filtroFunc(vaga);
+        }).length;
+        
+        const contadores = {
+            all: this.state.vagas.length,
+            junior: contarVagas(v => 
+                v.titulo.toLowerCase().includes('junior') ||
+                v.titulo.toLowerCase().includes('júnior') ||
+                v.titulo.toLowerCase().includes('jr') ||
+                (v.nivel && v.nivel.toLowerCase()==='júnior')),
+            estagio: contarVagas(v =>
+                v.titulo.toLowerCase().includes('estágio') ||
+                v.titulo.toLowerCase().includes('estagio') ||
+                v.titulo.toLowerCase().includes('trainee') ||
+                v.titulo.toLowerCase().includes('intern') ||
+                (v.nivel && v.nivel.toLowerCase()==='estágio')),
+            campinas: contarVagas(v => v.local.toLowerCase().includes('campinas')),
+            sap: contarVagas(v =>
+                v.titulo.toLowerCase().includes('sap') ||
+                v.departamento.toLowerCase().includes('sap')),
+            engineering: contarVagas(v =>
+                v.departamento.toLowerCase().includes('engineering') ||
+                v.departamento.toLowerCase().includes('engenharia')||
+                v.titulo.toLowerCase().includes('engineer')||
+                v.titulo.toLowerCase().includes('engenheiro'))
+        };
+        
+        const contadoresCidades = {
+            all: this.state.vagas.length,
+            campinas: contarVagas(v => v.local.toLowerCase().includes('campinas')),
+            saoPaulo: contarVagas(v => 
+                v.local.toLowerCase().includes('são paulo')||
+                v.local.toLowerCase().includes('sao paulo')),
+            curitiba: contarVagas(v =>v.local.toLowerCase().includes('curitiba')),
+            portoAlegre: contarVagas(v => 
+                v.local.toLowerCase().includes('porto alegre'))
+        };
+        
+        const updateCount = (elementId, value) => {
+            if (this.elementos[elementId]) {
+                this.elementos[elementId].textContent = value;
+            }
+        };
+        
+        updateCount('countAll', contadores.all);
+        updateCount('countJunior', contadores.junior);
+        updateCount('countEstagio', contadores.estagio);
+        updateCount('countCampinas', contadores.campinas);
+        updateCount('countSap', contadores.sap);
+        updateCount('countEngineering', contadores.engineering);
+        
+        updateCount('countAllCities', contadoresCidades.all);
+        updateCount('countCidadeCampinas', contadoresCidades.campinas);
+        updateCount('countCidadeSaoPaulo', contadoresCidades.saoPaulo);
+        updateCount('countCidadeCuritiba', contadoresCidades.curitiba);
+        updateCount('countCidadePortoAlegre', contadoresCidades.portoAlegre);
     }
-  }
-
-  definirFiltroAtivo(filtro) {
-    this.state.filtroAtivo = filtro;
-    this.state.vagasExibidas = 20;
-    this.elementos.filterTabs.forEach(tab => {
-      tab.classList.toggle('active', tab.dataset.filter === filtro);
-    });
-    this.aplicarFiltros();
-  }
-
-  definirCidadeAtiva(cidade) {
-    this.state.cidadeAtiva = cidade;
-    this.state.vagasExibidas = 20;
-    this.elementos.cityTabs.forEach(tab => {
-      tab.classList.toggle('active', tab.dataset.city === cidade);
-    });
-    this.aplicarFiltros();
-  }
-
-  limparTodosFiltros() {
-    this.state.filtroAtivo = 'all';
-    this.state.cidadeAtiva = 'all';
-    this.state.termoBusca = '';
-    this.state.vagasExibidas = 20;
-    if (this.elementos.searchInput) this.elementos.searchInput.value = '';
-    this.elementos.filterTabs.forEach(tab => tab.classList.toggle('active', tab.dataset.filter === 'all'));
-    this.elementos.cityTabs.forEach(tab => tab.classList.toggle('active', tab.dataset.city === 'all'));
-    this.aplicarFiltros();
-    this.mostrarToast('🗑️ Filtros limpos', 'info');
-  }
-
-  aplicarFiltros() {
-    let list = [...this.state.vagas];
-
-    // filtros rápidos
-    switch (this.state.filtroAtivo) {
-      case 'junior':
-        list = list.filter(v => v.titulo.toLowerCase().includes('junior') || v.titulo.toLowerCase().includes('jr'));
-        break;
-      case 'estagio':
-        list = list.filter(v => /estagi|trainee|intern/.test(v.titulo.toLowerCase()));
-        break;
-      case 'campinas':
-        list = list.filter(v => v.local.toLowerCase().includes('campinas'));
-        break;
-      case 'sap':
-        list = list.filter(v => v.titulo.toLowerCase().includes('sap') || v.departamento.toLowerCase().includes('sap'));
-        break;
-      case 'engineering':
-        list = list.filter(v => /engenharia|engineer/.test(v.departamento.toLowerCase()));
-        break;
+    
+    renderizarVagas() {
+        const vagasParaExibir = this.state.vagasFiltradas.slice(0,this.state.vagasExibidas);
+        
+        if (this.elementos.resultCount) {
+            this.elementos.resultCount.textContent =
+                `${this.state.vagasFiltradas.length} vaga${this.state.vagasFiltradas.length!==1?'s':''} encontrada${this.state.vagasFiltradas.length!==1?'s':''}`;
+        }
+        
+        if (!this.elementos.vagasList) return;
+        
+        if (vagasParaExibir.length === 0) {
+            this.elementos.vagasList.innerHTML = `
+                <div class="sem-vagas">
+                    <div style="text-align:center;padding:60px 20px;color:#7f8c8d;">
+                        <div style="font-size:4em;margin-bottom:20px;">🤷‍♂️</div>
+                        <h3>Nenhuma vaga encontrada</h3>
+                        <p>Tente ajustar os filtros ou termo de busca</p>
+                        <button onclick="window.vagasApp.limparTodosFiltros()" style="margin-top:15px;padding:10px 20px;background:#3498db;color:white;border:none;border-radius:8px;cursor:pointer;font-family:inherit;">
+                            🗑️ Limpar Filtros
+                        </button>
+                        <p style="margin-top:15px;font-size:0.9em;">
+                            <small>Fonte: ${this.DOMAIN}</small>
+                        </p>
+                    </div>
+                </div>
+            `;
+        } else {
+            this.elementos.vagasList.innerHTML = vagasParaExibir.map((vaga,index) =>
+                this.criarCardVaga(vaga,index)).join('');
+        }
+        
+        const loadMoreSection = document.querySelector('.load-more-section');
+        if (loadMoreSection) {
+            if (this.state.vagasFiltradas.length > this.state.vagasExibidas) {
+                loadMoreSection.classList.remove('hidden');
+            } else {
+                loadMoreSection.classList.add('hidden');
+            }
+        }
+        
+        if (this.elementos.vagasList) {
+            this.elementos.vagasList.classList.add('fade-in');
+        }
     }
-
-    // filtro por cidade
-    if (this.state.cidadeAtiva !== 'all') {
-      list = list.filter(v => v.local.toLowerCase().includes(this.state.cidadeAtiva));
-    }
-
-    // busca por termo
-    if (this.state.termoBusca.trim()) {
-      const termo = this.state.termoBusca.toLowerCase();
-      list = list.filter(v =>
-        v.titulo.toLowerCase().includes(termo) ||
-        v.local.toLowerCase().includes(termo) ||
-        v.departamento.toLowerCase().includes(termo)
-      );
-    }
-
-    // ordenação
-    list.sort((a, b) => {
-      const cmp = a.titulo.localeCompare(b.titulo, 'pt-BR');
-      return this.state.ordenacaoAsc ? cmp : -cmp;
-    });
-
-    this.state.vagasFiltradas = list;
-    this.atualizarContadores();
-    this.renderizarVagas();
-    this.atualizarStatusFiltro();
-  }
-
-  atualizarContadores() {
-    const totalAll = this.state.vagas.length;
-    const count = type => this.state.vagas.filter(v => v.titulo.toLowerCase().includes(type)).length;
-    document.getElementById('countAll').textContent = totalAll;
-    document.getElementById('countJunior').textContent = count('junior');
-    document.getElementById('countEstagio').textContent = this.state.vagas.filter(v => /estagi|trainee/.test(v.titulo.toLowerCase())).length;
-    document.getElementById('countCampinas').textContent = this.state.vagas.filter(v => v.local.toLowerCase().includes('campinas')).length;
-    document.getElementById('countSap').textContent = count('sap');
-    document.getElementById('countEngineering').textContent = this.state.vagas.filter(v => /engenharia|engineer/.test(v.departamento.toLowerCase())).length;
-
-    document.getElementById('countAllCities').textContent = totalAll;
-    document.getElementById('countCidadeCampinas').textContent = this.state.vagas.filter(v => v.local.toLowerCase().includes('campinas')).length;
-    document.getElementById('countCidadeSaoPaulo').textContent = this.state.vagas.filter(v => v.local.toLowerCase().includes('são paulo')).length;
-    document.getElementById('countCidadeCuritiba').textContent = this.state.vagas.filter(v => v.local.toLowerCase().includes('curitiba')).length;
-    document.getElementById('countCidadePortoAlegre').textContent = this.state.vagas.filter(v => v.local.toLowerCase().includes('porto alegre')).length;
-  }
-
-  renderizarVagas() {
-    const toShow = this.state.vagasFiltradas.slice(0, this.state.vagasExibidas);
-    if (this.elementos.vagasList) {
-      if (toShow.length === 0) {
-        this.elementos.vagasList.innerHTML = `
-          <div class="sem-vagas"><h3>Nenhuma vaga encontrada</h3></div>
+    
+    criarCardVaga(vaga,index) {
+        if (!vaga||!vaga.titulo||!vaga.local||!vaga.departamento) {
+            return '<div class="vaga-card-error">⚠️ Vaga com dados inválidos</div>';
+        }
+        
+        const dataExpiracao = vaga.dataExpiracao
+            ? new Date(vaga.dataExpiracao).toLocaleDateString('pt-BR')
+            : null;
+            
+        const dataCriacao = vaga.dataCriacao
+            ? new Date(vaga.dataCriacao).toLocaleDateString('pt-BR')
+            : null;
+        
+        return `
+            <div class="vaga-card" style="animation-delay:${index*0.1}s">
+                <div class="vaga-header">
+                    <h3 class="vaga-titulo">${vaga.titulo}</h3>
+                    ${vaga.referencia&&vaga.referencia!=='null'&&vaga.referencia!=='Não informado'
+                        ?`<span class="vaga-ref">Ref:${vaga.referencia}</span>`:''
+                    }
+                </div>
+                
+                <div class="vaga-info">
+                    <div class="vaga-info-item"><span class="info-icon">📍</span><strong>Local:</strong> ${vaga.local}</div>
+                    <div class="vaga-info-item"><span class="info-icon">🏢</span><strong>Departamento:</strong> ${vaga.departamento}</div>
+                    ${vaga.nivel&&vaga.nivel!=='Não especificado'?`
+                        <div class="vaga-info-item"><span class="info-icon">⭐</span><strong>Nível:</strong> ${vaga.nivel}</div>
+                    `:''}
+                    ${dataExpiracao?`
+                        <div class="vaga-info-item"><span class="info-icon">⏰</span><strong>Expira em:</strong> ${dataExpiracao}</div>
+                    `:''}
+                    ${dataCriacao?`
+                        <div class="vaga-info-item"><span class="info-icon">📅</span><strong>Publicada em:</strong> ${dataCriacao}</div>
+                    `:''}
+                </div>
+                
+                <div class="vaga-actions">
+                    <a href="${vaga.link||'#'}" target="_blank" rel="noopener noreferrer" class="vaga-btn vaga-btn-primary">
+                        <span>📋</span> Ver Vaga
+                    </a>
+                    ${vaga.linkCandidatura&&vaga.linkCandidatura!==vaga.link&&vaga.linkCandidatura!=='#'?`
+                        <a href="${vaga.linkCandidatura}" target="_blank" rel="noopener noreferrer" class="vaga-btn vaga-btn-success">
+                            <span>✉️</span> Candidatar-se
+                        </a>
+                    `:''}
+                    <a href="https://careers.smartrecruiters.com/BoschGroup/brazil" target="_blank" rel="noopener noreferrer" class="vaga-btn vaga-btn-secondary">
+                        <span>🏢</span> Bosch Carreiras
+                    </a>
+                </div>
+            </div>
         `;
-      } else {
-        this.elementos.vagasList.innerHTML = toShow.map((v,i) => this.criarCardVaga(v,i)).join('');
-      }
     }
-    const loadMoreSec = document.querySelector('.load-more-section');
-    if (loadMoreSec) {
-      loadMoreSec.classList.toggle('hidden', this.state.vagasFiltradas.length <= this.state.vagasExibidas);
+    
+    atualizarEstatisticas() {
+        if (this.elementos.totalVagasGeral) {
+            this.elementos.totalVagasGeral.textContent = this.state.vagas.length;
+        }
+        
+        if (this.state.ultimaAtualizacao && this.elementos.ultimaAtualizacao) {
+            const tempo = this.formatarTempoRelativo(this.state.ultimaAtualizacao);
+            this.elementos.ultimaAtualizacao.textContent = tempo;
+        }
     }
-    if (this.elementos.resultCount) {
-      this.elementos.resultCount.textContent = `${this.state.vagasFiltradas.length} vaga${this.state.vagasFiltradas.length!==1?'s':''} encontrada${this.state.vagasFiltradas.length!==1?'s':''}`;
+    
+    atualizarStatusFiltro() {
+        const filtroTexto = {
+            'all': 'Todas as vagas',
+            'junior': 'Filtrado: Vagas Júnior',
+            'estagio': 'Filtrado: Estágios',
+            'campinas': 'Filtrado: Campinas',
+            'sap': 'Filtrado: SAP',
+            'engineering': 'Filtrado: Engenharia'
+        };
+        
+        const cidadeTexto = {
+            'all': '',
+            'campinas': ' • Cidade: Campinas',
+            'sao paulo': ' • Cidade: São Paulo',
+            'curitiba': ' • Cidade: Curitiba',
+            'porto alegre': ' • Cidade: Porto Alegre'
+        };
+        
+        let status = filtroTexto[this.state.filtroAtivo] || 'Filtro desconhecido';
+        status += cidadeTexto[this.state.cidadeAtiva] || '';
+        
+        if (this.state.termoBusca) {
+            status += ` • Busca: "${this.state.termoBusca}"`;
+        }
+        
+        if (this.elementos.filterStatus) {
+            this.elementos.filterStatus.textContent = status;
+        }
     }
-  }
-
-  criarCardVaga(vaga, index) {
-    const dataExp = vaga.dataExpiracao ? new Date(vaga.dataExpiracao).toLocaleDateString('pt-BR') : null;
-    const dataCri = vaga.dataCriacao ? new Date(vaga.dataCriacao).toLocaleDateString('pt-BR') : null;
-    return `
-      <div class="vaga-card" style="animation-delay:${index*0.1}s">
-        <div class="vaga-header">
-          <h3 class="vaga-titulo">${vaga.titulo}</h3>
-          ${vaga.referencia?`<span class="vaga-ref">Ref:${vaga.referencia}</span>`:''}
-        </div>
-        <div class="vaga-info">
-          <div><span>📍</span> ${vaga.local}</div>
-          <div><span>🏢</span> ${vaga.departamento}</div>
-          ${vaga.nivel?`<div><span>⭐</span> ${vaga.nivel}</div>`:''}
-          ${dataExp?`<div><span>⏰</span> ${dataExp}</div>`:''}
-          ${dataCri?`<div><span>📅</span> ${dataCri}</div>`:''}
-        </div>
-        <div class="vaga-actions">
-          <a href="${vaga.link}" class="vaga-btn vaga-btn-primary">📋 Ver Vaga</a>
-          ${vaga.linkCandidatura && vaga.linkCandidatura!==vaga.link?`<a href="${vaga.linkCandidatura}" target="_blank" rel="noopener" class="vaga-btn vaga-btn-success">✉️ Candidatar-se</a>`:''}
-        </div>
-      </div>
-    `;
-  }
-
-  atualizarEstatisticas() {
-    if (this.elementos.totalVagasGeral) {
-      const total = this.state.vagas.length;
-      this.elementos.totalVagasGeral.textContent = total >= 200 ? '200+' : total;
+    
+    atualizarHorario() {
+        if (this.state.ultimaAtualizacao && this.elementos.ultimaAtualizacao) {
+            const tempo = this.formatarTempoRelativo(this.state.ultimaAtualizacao);
+            this.elementos.ultimaAtualizacao.textContent = tempo;
+        } else if (this.elementos.ultimaAtualizacao) {
+            this.elementos.ultimaAtualizacao.textContent = 'Nunca';
+        }
     }
-    if (this.elementos.ultimaAtualizacao && this.state.ultimaAtualizacao) {
-      this.elementos.ultimaAtualizacao.textContent = this.formatarTempoRelativo(this.state.ultimaAtualizacao);
+    
+    formatarTempoRelativo(data) {
+        const agora = new Date();
+        const diferenca = agora - data;
+        const minutos = Math.floor(diferenca/60000);
+        
+        if (minutos<1) return 'Agora mesmo';
+        if (minutos<60) return `${minutos}min atrás`;
+        
+        const horas = Math.floor(minutos/60);
+        if (horas<24) return `${horas}h atrás`;
+        
+        const dias = Math.floor(horas/24);
+        return `${dias}d atrás`;
     }
-  }
-
-  atualizarStatusFiltro() {
-    const textos = {
-      all: 'Todas as vagas',
-      junior: 'Filtrado: Júnior',
-      estagio: 'Filtrado: Estágio',
-      campinas: 'Filtrado: Campinas',
-      sap: 'Filtrado: SAP',
-      engineering: 'Filtrado: Engenharia'
-    };
-    let txt = textos[this.state.filtroAtivo] || '';
-    if (this.state.cidadeAtiva !== 'all') {
-      txt += ` • Cidade: ${this.state.cidadeAtiva.charAt(0).toUpperCase()+this.state.cidadeAtiva.slice(1)}`;
+    
+    mostrarLoading() {
+        if (this.elementos.loading) this.elementos.loading.classList.remove('hidden');
+        if (this.elementos.resultados) this.elementos.resultados.classList.add('hidden');
+        if (this.elementos.errorSection) this.elementos.errorSection.classList.add('hidden');
     }
-    if (this.state.termoBusca) {
-      txt += ` • Busca: "${this.state.termoBusca}"`;
+    
+    ocultarLoading() {
+        if (this.elementos.loading) this.elementos.loading.classList.add('hidden');
     }
-    if (this.elementos.filterStatus) {
-      this.elementos.filterStatus.textContent = txt;
+    
+    mostrarResultados() {
+        if (this.elementos.resultados) this.elementos.resultados.classList.remove('hidden');
+        if (this.elementos.errorSection) this.elementos.errorSection.classList.add('hidden');
     }
-  }
-
-  atualizarHorario() {
-    if (this.elementos.ultimaAtualizacao) {
-      this.elementos.ultimaAtualizacao.textContent = this.state.ultimaAtualizacao
-        ? this.formatarTempoRelativo(this.state.ultimaAtualizacao)
-        : 'Nunca';
+    
+    mostrarErro(mensagem) {
+        if (this.elementos.errorSection) this.elementos.errorSection.classList.remove('hidden');
+        if (this.elementos.resultados) this.elementos.resultados.classList.add('hidden');
+        if (this.elementos.errorMessage) this.elementos.errorMessage.textContent = mensagem;
     }
-  }
-
-  formatarTempoRelativo(data) {
-    const diff = Date.now() - data;
-    const mins = Math.floor(diff/60000);
-    if (mins < 1) return 'Agora mesmo';
-    if (mins < 60) return `${mins}min atrás`;
-    const hrs = Math.floor(mins/60);
-    if (hrs < 24) return `${hrs}h atrás`;
-    const dias = Math.floor(hrs/24);
-    return `${dias}d atrás`;
-  }
-
-  mostrarLoading() {
-    if (this.elementos.loading) this.elementos.loading.classList.remove('hidden');
-    if (this.elementos.resultados) this.elementos.resultados.classList.add('hidden');
-    if (this.elementos.errorSection) this.elementos.errorSection.classList.add('hidden');
-  }
-
-  ocultarLoading() {
-    if (this.elementos.loading) this.elementos.loading.classList.add('hidden');
-  }
-
-  mostrarResultados() {
-    if (this.elementos.resultados) this.elementos.resultados.classList.remove('hidden');
-    if (this.elementos.errorSection) this.elementos.errorSection.classList.add('hidden');
-  }
-
-  mostrarErro(msg) {
-    if (this.elementos.errorSection) this.elementos.errorSection.classList.remove('hidden');
-    if (this.elementos.resultados) this.elementos.resultados.classList.add('hidden');
-    if (this.elementos.errorMessage) this.elementos.errorMessage.textContent = msg;
-    if (this.elementos.errorTime) this.elementos.errorTime.textContent = new Date().toLocaleString('pt-BR');
-  }
-
-  mostrarToast(msg, tipo='info') {
-    const container = this.elementos.toastContainer;
-    if (!container) return;
-    const toast = document.createElement('div');
-    toast.className = `toast ${tipo}`;
-    const icons = { success:'✅', error:'❌', warning:'⚠️', info:'ℹ️' };
-    toast.innerHTML = `<span>${icons[tipo]||'ℹ️'}</span><span>${msg}</span>`;
-    container.appendChild(toast);
-    setTimeout(() => {
-      toast.style.animation = 'slideIn 0.3s ease reverse';
-      setTimeout(() => toast.remove(), 300);
-    }, 4000);
-  }
-
-  debounce(fn, wait) {
-    let timeout;
-    return (...args) => {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => fn(...args), wait);
-    };
-  }
-
-  trackEvent(event, data={}) {
-    console.log(`📊 Event: ${event}`, data);
-  }
+    
+    mostrarToast(mensagem, tipo = 'info') {
+        if (!this.elementos.toastContainer) return;
+        
+        const toast = document.createElement('div');
+        toast.className = `toast ${tipo}`;
+        
+        const icones = {
+            'success': '✅',
+            'error': '❌',
+            'warning': '⚠️',
+            'info': 'ℹ️'
+        };
+        
+        toast.innerHTML = `
+            <span>${icones[tipo]||'ℹ️'}</span>
+            <span>${mensagem}</span>
+        `;
+        
+        this.elementos.toastContainer.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => {
+                    if (toast.parentNode) toast.remove();
+                }, 300);
+            }
+        }, 4000);
+    }
+    
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    trackEvent(event, data = {}) {
+        console.log(`📊 Event: ${event}`, data);
+    }
 }
 
+// Inicializar aplicação
 document.addEventListener('DOMContentLoaded', () => {
-  window.vagasApp = new VagasBoschApp();
+    console.log('🌍 www.vagas-rb.tech carregando...');
+    console.log('👤 Desenvolvido por: Zumbaiero');
+    console.log('📅 Deploy: 19/06/2025 - 00:37 UTC');
+    
+    try {
+        window.vagasApp = new VagasBoschApp();
+    } catch (error) {
+        console.error('❌ Erro ao inicializar app:', error);
+        document.body.innerHTML = `
+            <div style="text-align:center;padding:50px;font-family:Arial;">
+                <h2>⚠️ Erro na Inicialização</h2>
+                <p>Erro: ${error.message}</p>
+                <button onclick="window.location.reload()" style="padding:10px 20px;margin-top:20px;">
+                    🔄 Recarregar Página
+                </button>
+            </div>
+        `;
+    }
 });
