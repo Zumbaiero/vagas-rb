@@ -39,11 +39,13 @@ app.get("/api/vagas", async (req, res) => {
         offset += limit;
       }
       
-      // Limite de segurança para evitar loops infinitos
-      if (offset > 1000) {
+      // Limite de segurança aumentado para capturar mais vagas
+      if (offset > 2000) {
         hasMoreData = false;
       }
     }
+
+    console.log(`Total de vagas do Brasil encontradas: ${allVagas.length}`);
 
     let filteredVagas = [...allVagas];
 

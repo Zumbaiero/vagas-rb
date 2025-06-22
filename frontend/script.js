@@ -42,7 +42,7 @@ class VagasApp {
         this.filterButtons.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 this.setActiveFilter(e.target);
-                this.currentFilter = e.target.dataset.nivel;
+                this.currentFilter = e.target.dataset.filter;
                 this.filterJobs();
             });
         });
