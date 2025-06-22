@@ -15,26 +15,45 @@ app.use((req, res, next) => {
 
 app.get("/api/vagas", async (req, res) => {
   try {
-    const { nivel, busca } = req.query;
+    const { nivel, busca, cidade } = req.query;
     let allVagas = [];
-    let nextPageId = null;
+    let offset = 0;
+    const limit = 100;
+    let hasMoreData = true;
 
-    do {
-      const params = new URLSearchParams();
-      if (nextPageId) {
-        params.append("nextPageId", nextPageId);
-      }
+    while (hasMoreData) {
       const response = await axios.get(
-        `https://api.smartrecruiters.com/v1/companies/BoschGroup/postings?${params.toString()}`
+        `https://api.smartrecruiters.com/v1/companies/BoschGroup/postings?limit=${limit}&offset=${offset}`
       );
+      
       const vagasPage = response.data.content.filter(
         (vaga) => vaga.location && vaga.location.country === "br"
       );
+      
       allVagas = allVagas.concat(vagasPage);
-      nextPageId = response.data.nextPageId || null;
-    } while (nextPageId);
+      
+      // Se retornou menos que o limite, não há mais páginas
+      if (response.data.content.length < limit) {
+        hasMoreData = false;
+      } else {
+        offset += limit;
+      }
+      
+      // Limite de segurança para evitar loops infinitos
+      if (offset > 1000) {
+        hasMoreData = false;
+      }
+    }
 
     let filteredVagas = [...allVagas];
+
+    // Filtrar por cidade
+    if (cidade) {
+      filteredVagas = filteredVagas.filter((vaga) => {
+        const cidadeVaga = vaga.location?.city?.toLowerCase() || "";
+        return cidadeVaga.includes(cidade.toLowerCase());
+      });
+    }
 
     // Filtrar por nível de experiência
     if (nivel) {

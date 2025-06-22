@@ -90,8 +90,18 @@ class VagasApp {
             this.showLoading(true);
             
             const params = new URLSearchParams();
-            if (this.currentFilter) params.append('nivel', this.currentFilter);
-            if (this.currentSearch) params.append('busca', this.currentSearch);
+            
+            if (this.currentFilter && this.currentFilter !== 'all') {
+                if (this.currentFilter === 'campinas') {
+                    params.append('cidade', 'campinas');
+                } else {
+                    params.append('nivel', this.currentFilter);
+                }
+            }
+            
+            if (this.currentSearch) {
+                params.append('busca', this.currentSearch);
+            }
             
             const url = `${this.apiUrl}${params.toString() ? '?' + params.toString() : ''}`;
             const response = await fetch(url);

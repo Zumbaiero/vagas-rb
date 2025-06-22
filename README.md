@@ -9,6 +9,20 @@ Uma aplicação simples e profissional para buscar e filtrar vagas de emprego da
 - **Interface responsiva**: Design moderno e profissional que funciona em desktop e mobile
 - **Dados em tempo real**: Consome diretamente a API da SmartRecruiters da Bosch
 - **Compartilhamento**: Compartilhe vagas facilmente
+- **Paginação automática**: Busca todas as vagas disponíveis usando paginação da API
+- **URLs oficiais**: Links diretos para as páginas oficiais das vagas
+
+## 🔧 Correções Implementadas
+
+### Backend
+- ✅ **Paginação completa**: Implementada busca com paginação para capturar todas as vagas disponíveis
+- ✅ **Filtros aprimorados**: Melhorados os filtros por nível de experiência
+- ✅ **Compatibilidade Vercel**: Mantida compatibilidade total com deploy na Vercel
+
+### Frontend
+- ✅ **URLs oficiais**: Botão "Ver Vaga" agora direciona para URLs oficiais no formato `https://jobs.smartrecruiters.com/BoschGroup/[ID]-[nome-da-vaga]`
+- ✅ **Interface atualizada**: Mantido design profissional e responsivo
+- ✅ **Compartilhamento**: Função de compartilhar usa as URLs oficiais
 
 ## 🛠️ Tecnologias
 
@@ -16,6 +30,7 @@ Uma aplicação simples e profissional para buscar e filtrar vagas de emprego da
 - **Node.js** com Express
 - **Axios** para consumo da API
 - Filtros inteligentes por nível e busca textual
+- Paginação automática para capturar todas as vagas
 
 ### Frontend
 - **HTML5, CSS3, JavaScript** puro
@@ -119,7 +134,7 @@ O frontend estará disponível em `http://localhost:8080`
 ## 📋 API Endpoints
 
 ### GET `/api/vagas`
-Retorna todas as vagas da Bosch no Brasil
+Retorna todas as vagas da Bosch no Brasil (com paginação automática)
 
 **Parâmetros de query opcionais:**
 - `nivel`: Filtra por nível (`junior`, `estagio`, `pleno`, `senior`)
@@ -130,6 +145,18 @@ Retorna todas as vagas da Bosch no Brasil
 - `/api/vagas?nivel=pleno` - Apenas vagas pleno
 - `/api/vagas?busca=engenheiro` - Vagas que contenham "engenheiro"
 - `/api/vagas?nivel=senior&busca=software` - Vagas sênior de software
+
+## 🔗 URLs das Vagas
+
+As vagas agora direcionam para URLs oficiais no formato:
+```
+https://jobs.smartrecruiters.com/BoschGroup/[ID]-[nome-da-vaga-formatado]
+```
+
+Exemplo:
+```
+https://jobs.smartrecruiters.com/BoschGroup/744000066194216-agente-qualidade-logistica-jr-terceiro-turno-31121
+```
 
 ## 🎨 Personalização
 
@@ -155,6 +182,15 @@ A aplicação é totalmente responsiva e otimizada para:
 - CORS configurado para permitir acesso do frontend
 - Validação de parâmetros de entrada
 - Tratamento de erros adequado
+
+## 📈 Melhorias Implementadas
+
+### v2.0 - Correções e Melhorias
+- ✅ Implementada paginação automática para capturar todas as vagas
+- ✅ URLs oficiais das vagas implementadas
+- ✅ Filtros aprimorados por nível de experiência
+- ✅ Melhor tratamento de erros
+- ✅ Interface mais robusta e profissional
 
 ## 📄 Licença
 
